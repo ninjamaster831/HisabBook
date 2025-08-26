@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <!-- Violet Dark Theme -->
+    <color name="violet_dark_primary">#6A1B9A</color>
+    <color name="violet_dark_secondary">#4A148C</color>
+    <color name="violet_dark_background">#1A1A2E</color>
+    <color name="violet_dark_surface">#16213E</color>
+
+    <!-- Violet Light Theme -->
+    <color name="violet_light_primary">#9C27B0</color>
+    <color name="violet_light_secondary">#7B1FA2</color>
+    <color name="violet_light_background">#F3E5F5</color>
+    <color name="violet_light_surface">#FFFFFF</color>
+
+    <color name="violet_accent">#E1BEE7</color>
+    <color name="violet_text_primary">#FFFFFF</color>
+    <color name="violet_text_secondary">#B39DDB</color>
+
+    <!-- Status Colors -->
+    <color name="transparent">#00000000</color>
+    <color name="gray_light">#F5F5F5</color>
+    <color name="gray_dark">#424242</color>
+</resources>

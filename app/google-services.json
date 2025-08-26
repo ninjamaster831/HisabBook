@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "152568087563",
+    "project_id": "hisabbook-9ead7",
+    "storage_bucket": "hisabbook-9ead7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:152568087563:android:560d77adb4c6a8b72db30e",
+        "android_client_info": {
+          "package_name": "com.guruyuknow.hisabbook"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "152568087563-msjmtje0o9q4evtfktggk3dfspilj75o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.guruyuknow.hisabbook",
+            "certificate_hash": "1378eae49c129d3be0ed0853594121b2b5a5b297"
+          }
+        },
+        {
+          "client_id": "152568087563-6qraclv17o67kicn6k45lgtmha2589ll.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB7pACwPn-LI5YgWPhDdKRgc_lhoLYiOtw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "152568087563-6qraclv17o67kicn6k45lgtmha2589ll.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
