@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "152568087563-bde6guusdndkit57r4mek8eadh3atlll.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.guruyuknow.hisabbook",
+            "certificate_hash": "ae13b3e744ae7cf5924d0d49c706873e1375a886"
+          }
+        },
+        {
           "client_id": "152568087563-msjmtje0o9q4evtfktggk3dfspilj75o.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

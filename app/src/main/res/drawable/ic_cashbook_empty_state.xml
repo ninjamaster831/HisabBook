@@ -1,0 +1,54 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="150dp"
+    android:viewportWidth="200"
+    android:viewportHeight="150">
+    <!-- Notebook -->
+    <path
+        android:fillColor="#FF5722"
+        android:pathData="M50,30h100v90h-100z"/>
+    <!-- Spiral binding -->
+    <path
+        android:fillColor="#CCCCCC"
+        android:pathData="M45,35h5v80h-5z"/>
+    <!-- Pages -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M55,40h80v70h-80z"/>
+    <!-- Lines on page -->
+    <path
+        android:fillColor="#E0E0E0"
+        android:pathData="M60,50h70v2h-70z"/>
+    <path
+        android:fillColor="#E0E0E0"
+        android:pathData="M60,60h70v2h-70z"/>
+    <path
+        android:fillColor="#E0E0E0"
+        android:pathData="M60,70h70v2h-70z"/>
+    <path
+        android:fillColor="#E0E0E0"
+        android:pathData="M60,80h50v2h-50z"/>
+    <!-- Money bills -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M110,20h30v20h-30z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M118,26h14v8h-14z"/>
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M130,10h30v20h-30z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M138,16h14v8h-14z"/>
+    <!-- Pencil -->
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M160,70l-20,20 5,5 20,-20z"/>
+    <path
+        android:fillColor="#795548"
+        android:pathData="M165,65l5,5 -5,5 -5,-5z"/>
+    <path
+        android:fillColor="#37474F"
+        android:pathData="M168,68l2,2 -2,2 -2,-2z"/>
+</vector>

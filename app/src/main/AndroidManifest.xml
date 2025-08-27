@@ -15,7 +15,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.HisabBook"
         tools:targetApi="31">
-
+        <activity
+            android:name=".CashbookActivity"
+            android:exported="false" />
         <!-- Splash Activity - Entry Point -->
         <activity
             android:name=".SplashActivity"
@@ -23,22 +25,18 @@
             android:theme="@style/Theme.HisabBook.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-
-        <!-- Login Activity -->
+        </activity> <!-- Login Activity -->
         <activity
             android:name=".LoginActivity"
             android:exported="false"
-            android:theme="@style/Theme.HisabBook" />
-
-        <!-- Main Activity -->
+            android:theme="@style/Theme.HisabBook" /> <!-- Main Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="false"
             android:theme="@style/Theme.HisabBook" />
-
     </application>
 
 </manifest>

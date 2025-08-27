@@ -4,174 +4,342 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/violet_dark_background"
+    android:background="#F5F5F5"
     android:fillViewport="true">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:layout_height="wrap_content">
 
-        <!-- Profile Header -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/profileHeader"
+        <!-- Blue Header Background -->
+        <View
+            android:id="@+id/headerBackground"
+            android:layout_width="0dp"
+            android:layout_height="200dp"
+            android:background="#1976D2"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Header Content -->
+        <LinearLayout
+            android:id="@+id/headerContent"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:background="@drawable/profile_header_background"
-            android:padding="20dp"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center_vertical"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <!-- Profile Circle -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/profileImageCard"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                app:cardBackgroundColor="@color/violet_light_primary"
-                app:cardCornerRadius="40dp"
-                app:cardElevation="0dp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent">
-
-                <!-- Profile Image -->
-                <ImageView
-                    android:id="@+id/profileImage"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="centerCrop"
-                    android:visibility="gone" />
-
-                <!-- Profile Initials -->
-                <TextView
-                    android:id="@+id/profileInitials"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="MB"
-                    android:textColor="@color/white"
-                    android:textSize="28sp"
-                    android:textStyle="bold" />
-
-            </androidx.cardview.widget.CardView>
+            <!-- Book Icon -->
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_book"
+                app:tint="#FFFFFF" />
 
             <!-- Business Name -->
             <TextView
-                android:id="@+id/businessNameText"
+                android:id="@+id/headerBusinessName"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                android:text="My Business"
-                android:textColor="@color/white"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toStartOf="@+id/editButton"
-                app:layout_constraintStart_toEndOf="@+id/profileImageCard"
-                app:layout_constraintTop_toTopOf="@+id/profileImageCard" />
-
-            <!-- Edit Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/editButton"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="Edit"
-                android:textColor="@color/violet_accent"
-                android:textSize="14sp"
-                app:cornerRadius="18dp"
-                app:strokeColor="@color/violet_accent"
-                app:strokeWidth="1dp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@+id/profileImageCard" />
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <!-- Profile Strength Section -->
-        <LinearLayout
-            android:id="@+id/profileStrengthSection"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:orientation="horizontal"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/profileHeader">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
                 android:layout_weight="1"
-                android:text="Profile strength :"
-                android:textColor="@color/white"
-                android:textSize="16sp" />
-
-            <TextView
-                android:id="@+id/profileStrengthText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:text="Weak"
-                android:textColor="#F44336"
-                android:textSize="16sp"
+                android:text="My Business"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/profileStrengthPercentage"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0%"
-                android:textColor="#F44336"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+            <!-- Edit Icon -->
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_edit"
+                app:tint="#FFFFFF" />
 
         </LinearLayout>
 
-        <!-- Complete Profile Card -->
+        <!-- Profile Section -->
         <androidx.cardview.widget.CardView
-            android:id="@+id/completeProfileCard"
+            android:id="@+id/profileSection"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardBackgroundColor="@color/violet_light_primary"
+            android:layout_marginTop="80dp"
+            android:layout_marginHorizontal="16dp"
+            app:cardBackgroundColor="#FFFFFF"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/profileStrengthSection">
+            app:layout_constraintTop_toTopOf="@+id/headerBackground">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:padding="20dp">
 
+                <!-- Profile Circle -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/profileImageCard"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    app:cardBackgroundColor="#1976D2"
+                    app:cardCornerRadius="40dp"
+                    app:cardElevation="0dp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <!-- Profile Image -->
+                    <ImageView
+                        android:id="@+id/profileImage"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:visibility="gone" />
+
+                    <!-- Profile Initials -->
+                    <TextView
+                        android:id="@+id/profileInitials"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="MB"
+                        android:textColor="#FFFFFF"
+                        android:textSize="28sp"
+                        android:textStyle="bold" />
+
+                </androidx.cardview.widget.CardView>
+
+                <!-- Business Name -->
                 <TextView
-                    android:id="@+id/completeProfileTitle"
+                    android:id="@+id/businessNameText"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Complete your profile for better experience"
-                    android:textColor="@color/white"
-                    android:textSize="16sp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:text="My Business"
+                    android:textColor="#000000"
+                    android:textSize="22sp"
                     android:textStyle="bold"
+                    app:layout_constraintEnd_toStartOf="@+id/editButton"
+                    app:layout_constraintStart_toEndOf="@+id/profileImageCard"
+                    app:layout_constraintTop_toTopOf="@+id/profileImageCard" />
+
+                <!-- Edit Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/editButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="Edit"
+                    android:textColor="#1976D2"
+                    android:textSize="14sp"
+                    app:cornerRadius="18dp"
+                    app:strokeColor="#1976D2"
+                    app:strokeWidth="1dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@+id/profileImageCard" />
+
+                <!-- Profile Strength Section -->
+                <LinearLayout
+                    android:id="@+id/profileStrengthSection"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:orientation="horizontal"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintTop_toBottomOf="@+id/profileImageCard">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/proceedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="PROCEED"
-                    android:textColor="@color/violet_dark_primary"
-                    app:backgroundTint="@color/white"
-                    app:cornerRadius="20dp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/completeProfileTitle" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Profile strength :"
+                        android:textColor="#000000"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/profileStrengthText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="Weak"
+                        android:textColor="#F44336"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/profileStrengthPercentage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0%"
+                        android:textColor="#F44336"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
         </androidx.cardview.widget.CardView>
+
+
+        <!-- Feature Cards Grid -->
+        <GridLayout
+            android:id="@+id/featureCardsGrid"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginHorizontal="16dp"
+            android:columnCount="3"
+            android:rowCount="2"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/profileSection">
+
+            <!-- Bills Card -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="100dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="4dp"
+                app:cardBackgroundColor="#FFFFFF"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/ic_bill"
+                        app:tint="#E91E63" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Bills"
+                        android:textColor="#000000"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <!-- Staff Card -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="100dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="4dp"
+                app:cardBackgroundColor="#FFFFFF"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/ic_staff"
+                        app:tint="#795548" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Staff"
+                        android:textColor="#000000"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+            <androidx.cardview.widget.CardView
+                android:id="@+id/checkbookCard"
+                android:layout_width="0dp"
+                android:layout_height="100dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="4dp"
+                app:cardBackgroundColor="#FFFFFF"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/ic_book"
+                        app:tint="@color/violet_dark_background" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Checkbook"
+                        android:textColor="#000000"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+            <!-- Collection Card -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="100dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="4dp"
+                android:layout_columnSpan="1"
+                app:cardBackgroundColor="#FFFFFF"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/ic_collection"
+                        app:tint="#FF9800" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Collection"
+                        android:textColor="#000000"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+        </GridLayout>
 
         <!-- Menu Items -->
         <LinearLayout
@@ -179,10 +347,11 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
+            android:layout_marginHorizontal="16dp"
             android:orientation="vertical"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/completeProfileCard">
+            app:layout_constraintTop_toBottomOf="@+id/featureCardsGrid">
 
             <!-- Settings -->
             <LinearLayout
@@ -198,7 +367,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_settings"
-                    app:tint="@color/violet_accent" />
+                    app:tint="#1976D2" />
 
                 <TextView
                     android:layout_width="0dp"
@@ -206,14 +375,14 @@
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
                     android:text="Settings"
-                    android:textColor="@color/white"
+                    android:textColor="#000000"
                     android:textSize="16sp" />
 
                 <ImageView
                     android:layout_width="16dp"
                     android:layout_height="16dp"
                     android:src="@drawable/ic_arrow_right"
-                    app:tint="@color/violet_text_secondary" />
+                    app:tint="#757575" />
 
             </LinearLayout>
 
@@ -222,8 +391,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginHorizontal="16dp"
-                android:background="@color/violet_text_secondary"
-                android:alpha="0.3" />
+                android:background="#E0E0E0" />
 
             <!-- Help & Support -->
             <LinearLayout
@@ -239,7 +407,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_help"
-                    app:tint="@color/violet_accent" />
+                    app:tint="#1976D2" />
 
                 <TextView
                     android:layout_width="0dp"
@@ -247,14 +415,14 @@
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
                     android:text="Help &amp; Support"
-                    android:textColor="@color/white"
+                    android:textColor="#000000"
                     android:textSize="16sp" />
 
                 <ImageView
                     android:layout_width="16dp"
                     android:layout_height="16dp"
                     android:src="@drawable/ic_arrow_right"
-                    app:tint="@color/violet_text_secondary" />
+                    app:tint="#757575" />
 
             </LinearLayout>
 
@@ -263,8 +431,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginHorizontal="16dp"
-                android:background="@color/violet_text_secondary"
-                android:alpha="0.3" />
+                android:background="#E0E0E0" />
 
             <!-- About Us -->
             <LinearLayout
@@ -280,7 +447,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_info"
-                    app:tint="@color/violet_accent" />
+                    app:tint="#1976D2" />
 
                 <TextView
                     android:layout_width="0dp"
@@ -288,20 +455,20 @@
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
                     android:text="About Us"
-                    android:textColor="@color/white"
+                    android:textColor="#000000"
                     android:textSize="16sp" />
 
                 <ImageView
                     android:layout_width="16dp"
                     android:layout_height="16dp"
                     android:src="@drawable/ic_arrow_right"
-                    app:tint="@color/violet_text_secondary" />
+                    app:tint="#757575" />
 
             </LinearLayout>
 
         </LinearLayout>
 
-        <!-- Logout Button -->
+        <!-- Bottom padding -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/logoutButton"
             style="@style/Widget.Material3.Button.OutlinedButton"

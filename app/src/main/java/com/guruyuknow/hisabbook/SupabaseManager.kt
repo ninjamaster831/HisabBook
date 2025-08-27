@@ -64,14 +64,21 @@ object SupabaseManager {
     suspend fun updateUser(user: User, imageUri: Uri? = null, context: Context? = null): Result<User?> {
         return try {
             withContext(Dispatchers.IO) {
+                println("=== UPDATE USER DEBUG ===")
+                println("Input user: $user")
+                println("Image URI: $imageUri")
+
                 var avatarUrl = user.avatarUrl
 
                 // Upload image if provided
                 if (imageUri != null && context != null) {
+                    println("Uploading image...")
                     val uploadResult = uploadProfileImage(imageUri, user.id ?: "", context)
                     if (uploadResult.isSuccess) {
                         avatarUrl = uploadResult.getOrNull()
+                        println("Image uploaded successfully: $avatarUrl")
                     } else {
+                        println("Image upload failed: ${uploadResult.exceptionOrNull()?.message}")
                         return@withContext Result.failure(
                             uploadResult.exceptionOrNull() ?: Exception("Image upload failed")
                         )
@@ -79,11 +86,12 @@ object SupabaseManager {
                 }
 
                 val updatedUser = user.copy(avatarUrl = avatarUrl)
+                println("Updated user data: $updatedUser")
 
+                // Use select() to return the updated data
                 val result = client.from("user_profiles")
                     .update(
                         mapOf(
-                            "updated_at" to "now()",
                             "full_name" to updatedUser.fullName,
                             "avatar_url" to avatarUrl
                         )
@@ -91,12 +99,15 @@ object SupabaseManager {
                         filter {
                             eq("id", user.id ?: "")
                         }
-                    }
+                    } // Add this to return the updated row
                     .decodeSingle<User>()
 
+                println("Update result: $result")
                 Result.success(result)
             }
         } catch (e: Exception) {
+            println("Update user error: ${e.message}")
+            e.printStackTrace()
             Result.failure(e)
         }
     }
@@ -172,7 +183,7 @@ object SupabaseManager {
 
     private suspend fun upsertUser(user: User): User? {
         return try {
-            val existingUser = client.from("users")
+            val existingUser = client.from("user_profiles") // Changed from "users"
                 .select {
                     filter {
                         eq("id", user.id ?: "")
@@ -196,7 +207,7 @@ object SupabaseManager {
                     }
                     .decodeSingle<User>()
             } else {
-                client.from("users")
+                client.from("user_profiles") // Changed from "users"
                     .insert(user)
                     .decodeSingle<User>()
             }
@@ -209,20 +220,28 @@ object SupabaseManager {
 
     suspend fun getCurrentUser(): User? {
         return try {
+            println("=== GET CURRENT USER DEBUG ===")
             val supabaseUser = client.auth.currentUserOrNull()
+            println("Supabase auth user: $supabaseUser")
+            println("Supabase user ID: ${supabaseUser?.id}")
+
             if (supabaseUser != null) {
-                client.from("user_profiles")
+                val dbUser = client.from("user_profiles")
                     .select {
                         filter {
                             eq("id", supabaseUser.id)
                         }
                     }
                     .decodeSingle<User>()
+                println("Database user: $dbUser")
+                dbUser
             } else {
+                println("No authenticated user found")
                 null
             }
         } catch (e: Exception) {
             println("Error getting current user: ${e.message}")
+            e.printStackTrace()
             null
         }
     }

@@ -22,4 +22,15 @@
     <color name="transparent">#00000000</color>
     <color name="gray_light">#F5F5F5</color>
     <color name="gray_dark">#424242</color>
+
+
+        <color name="colorPrimary">#6200EE</color> <!-- Violet (Material Primary) -->
+        <color name="colorPrimaryDark">#3700B3</color>
+        <color name="colorAccent">#03DAC5</color>
+        <color name="gray">#757575</color>
+
+    <color name="colorGreen">#2E7D32</color> <!-- For IN entries -->
+    <color name="colorRed">#C62828</color>   <!-- For OUT entries -->
+    <color name="colorGray">#757575</color>
+
 </resources>

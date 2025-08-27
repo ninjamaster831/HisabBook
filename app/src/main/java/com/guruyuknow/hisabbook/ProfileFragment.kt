@@ -78,11 +78,10 @@ class ProfileFragment : Fragment() {
             editButton.setOnClickListener {
                 showEditProfileDialog()
             }
-
-            proceedButton.setOnClickListener {
-                // TODO: Navigate to profile completion screen
+            binding.featureCardsGrid.getChildAt(2).setOnClickListener {
+                val intent = Intent(requireContext(), CashbookActivity::class.java)
+                startActivity(intent)
             }
-
             settingsLayout.setOnClickListener {
                 // TODO: Navigate to settings
             }
@@ -104,13 +103,19 @@ class ProfileFragment : Fragment() {
     private fun loadUserData() {
         lifecycleScope.launch {
             try {
+                println("=== LOAD USER DATA DEBUG ===")
                 val user = SupabaseManager.getCurrentUser()
+                println("Loaded user from database: $user")
                 user?.let {
                     currentUser = it
                     updateUI(it)
+                    println("Current user set to: $currentUser")
+                } ?: run {
+                    println("No user found in database")
                 }
             } catch (e: Exception) {
-                // Handle error
+                println("Load user data error: ${e.message}")
+                e.printStackTrace()
             }
         }
     }
@@ -148,6 +153,12 @@ class ProfileFragment : Fragment() {
     }
 
     private fun showEditProfileDialog() {
+        if (currentUser == null) {
+            println("Current user is null, reloading user data...")
+            loadUserData()
+            Toast.makeText(requireContext(), "Loading user data, please try again", Toast.LENGTH_SHORT).show()
+            return
+        }
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_edit_profile, null)
 
         val nameInput = dialogView.findViewById<TextInputEditText>(R.id.nameInput)
@@ -210,17 +221,31 @@ class ProfileFragment : Fragment() {
     private fun saveProfileChanges(newName: String, imageUri: Uri?) {
         lifecycleScope.launch {
             try {
+                println("=== SAVE PROFILE CHANGES DEBUG ===")
+                println("New name: '$newName'")
+                println("Image URI: $imageUri")
+                println("Current user: $currentUser")
+
                 val updatedUser = currentUser?.copy(fullName = newName)
+                println("Updated user: $updatedUser")
 
                 if (updatedUser != null) {
-                    val result = SupabaseManager.updateUser(updatedUser, imageUri)
+                    val result = SupabaseManager.updateUser(updatedUser, imageUri, requireContext())
+                    println("Update result success: ${result.isSuccess}")
+
                     if (result.isSuccess) {
                         currentUser = result.getOrNull()
+                        println("New current user: $currentUser")
                         currentUser?.let { updateUI(it) }
                         Toast.makeText(requireContext(), "Profile updated successfully", Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(requireContext(), "Failed to update profile", Toast.LENGTH_SHORT).show()
+                        val error = result.exceptionOrNull()
+                        println("Update failed with error: ${error?.message}")
+                        error?.printStackTrace()
+                        Toast.makeText(requireContext(), "Failed to update profile: ${error?.message}", Toast.LENGTH_SHORT).show()
                     }
+                } else {
+                    println("Updated user is null!")
                 }
 
                 // Reset selected image
@@ -228,6 +253,8 @@ class ProfileFragment : Fragment() {
                 currentEditDialog = null
 
             } catch (e: Exception) {
+                println("Save profile changes error: ${e.message}")
+                e.printStackTrace()
                 Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
