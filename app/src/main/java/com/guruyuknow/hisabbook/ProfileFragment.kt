@@ -17,6 +17,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.CircleCrop
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
+import com.guruyuknow.hisabbook.Staff.StaffActivity
 import com.guruyuknow.hisabbook.databinding.FragmentProfileBinding
 import kotlinx.coroutines.launch
 
@@ -80,6 +81,10 @@ class ProfileFragment : Fragment() {
             }
             binding.featureCardsGrid.getChildAt(2).setOnClickListener {
                 val intent = Intent(requireContext(), CashbookActivity::class.java)
+                startActivity(intent)
+            }
+            binding.featureCardsGrid.getChildAt(1).setOnClickListener {
+                val intent = Intent(requireContext(), StaffActivity::class.java)
                 startActivity(intent)
             }
             settingsLayout.setOnClickListener {

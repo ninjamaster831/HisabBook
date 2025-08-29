@@ -44,7 +44,19 @@ class CashbookEntriesAdapter(
         }
 
         dateGroups.entries.sortedByDescending { it.key }.forEach { (date, entriesForDate) ->
-            groupedEntries.add(DateHeader(date, entriesForDate.size))
+            // Calculate IN and OUT amounts for this date
+            var inAmount = 0.0
+            var outAmount = 0.0
+
+            entriesForDate.forEach { entry ->
+                if (entry.type == "IN") {
+                    inAmount += entry.amount
+                } else {
+                    outAmount += entry.amount
+                }
+            }
+
+            groupedEntries.add(DateHeader(date, entriesForDate.size, inAmount, outAmount))
             groupedEntries.addAll(entriesForDate.sortedByDescending { it.createdAt })
         }
     }
@@ -99,11 +111,14 @@ class CashbookEntriesAdapter(
     class DateHeaderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val dateText: TextView = itemView.findViewById(R.id.dateText)
         private val entryCountText: TextView = itemView.findViewById(R.id.entryCountText)
+        private val outAmountText: TextView = itemView.findViewById(R.id.outAmountText)
+        private val inAmountText: TextView = itemView.findViewById(R.id.inAmountText)
 
         fun bind(header: DateHeader) {
             dateText.text = header.date
-            entryCountText.text =
-                "${header.entryCount} ${if (header.entryCount == 1) "Entry" else "Entries"}"
+            entryCountText.text = "${header.entryCount} ${if (header.entryCount == 1) "Entry" else "Entries"}"
+            outAmountText.text = "₹ ${String.format("%.0f", header.outAmount)}"
+            inAmountText.text = "₹ ${String.format("%.0f", header.inAmount)}"
         }
     }
 
@@ -182,6 +197,8 @@ class CashbookEntriesAdapter(
 
     data class DateHeader(
         val date: String,
-        val entryCount: Int
+        val entryCount: Int,
+        val inAmount: Double,
+        val outAmount: Double
     )
 }

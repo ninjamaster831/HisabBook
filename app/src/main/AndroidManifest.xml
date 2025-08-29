@@ -4,7 +4,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -16,9 +16,26 @@
         android:theme="@style/Theme.HisabBook"
         tools:targetApi="31">
         <activity
-            android:name=".CashbookActivity"
+            android:name=".Staff.StaffPermissionsActivity"
             android:exported="false" />
-        <!-- Splash Activity - Entry Point -->
+        <activity
+            android:name=".Staff.StaffDetailsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".Staff.StaffConfigurationActivity"
+            android:exported="false" />
+        <activity
+            android:name=".Staff.ContactPickerActivity"
+            android:exported="false" />
+        <activity
+            android:name=".Staff.StaffActivity"
+            android:exported="false" />
+        <activity
+            android:name=".CashbookReportActivity"
+            android:exported="false" />
+        <activity
+            android:name=".CashbookActivity"
+            android:exported="false" /> <!-- Splash Activity - Entry Point -->
         <activity
             android:name=".SplashActivity"
             android:exported="true"

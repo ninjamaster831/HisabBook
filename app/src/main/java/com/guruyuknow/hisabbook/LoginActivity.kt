@@ -27,6 +27,9 @@ class LoginActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "LoginActivity"
+        private const val PREF_NAME = "HisabBookPrefs"
+        private const val KEY_IS_LOGGED_IN = "is_logged_in"
+        private const val KEY_USER_EMAIL = "user_email"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -275,6 +278,9 @@ class LoginActivity : AppCompatActivity() {
                         val user = result.getOrNull()
                         Log.d(TAG, "Supabase authentication successful: ${user?.email}")
 
+                        // Save login state to SharedPreferences
+                        saveLoginState(user?.email ?: account.email ?: "")
+
                         runOnUiThread {
                             showLoading(false)
                             Toast.makeText(this@LoginActivity,
@@ -309,6 +315,17 @@ class LoginActivity : AppCompatActivity() {
             Toast.makeText(this, "Failed to get ID token", Toast.LENGTH_SHORT).show()
         }
     }
+
+    // Add this new method to save login state
+    private fun saveLoginState(email: String) {
+        Log.d(TAG, "Saving login state for user: $email")
+        val sharedPrefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE)
+        sharedPrefs.edit()
+            .putBoolean(KEY_IS_LOGGED_IN, true)
+            .putString(KEY_USER_EMAIL, email)
+            .apply()
+    }
+
 
     private fun showLoading(show: Boolean) {
         Log.d(TAG, "showLoading: $show")

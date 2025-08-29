@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginVertical="4dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <!-- Staff Avatar -->
+        <FrameLayout
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tv_staff_initials"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/circle_blue"
+                android:gravity="center"
+                android:text="MR"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+        </FrameLayout>
+
+        <!-- Staff Info -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="16dp"
+            android:layout_gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tv_staff_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mi Reina"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/black" />
+
+            <TextView
+                android:id="@+id/tv_salary_type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Daily Salary"
+                android:textSize="14sp"
+                android:textColor="@android:color/darker_gray"
+                android:layout_marginTop="2dp" />
+
+        </LinearLayout>
+
+        <!-- Salary Amount -->
+        <TextView
+            android:id="@+id/tv_salary_amount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="₹500"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/red"
+            android:layout_gravity="center_vertical"
+            android:layout_marginEnd="16dp" />
+
+        <!-- Actions -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_gravity="center_vertical">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_add_permission"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="+Add Permission"
+                android:textSize="10sp"
+                android:layout_marginBottom="4dp"
+                style="@style/Widget.Material3.Button.TextButton" />
+
+            <Spinner
+                android:id="@+id/dropdown_attendance"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:entries="@array/attendance_options"
+                android:prompt="@string/attendance_prompt"
+                android:layout_gravity="center" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

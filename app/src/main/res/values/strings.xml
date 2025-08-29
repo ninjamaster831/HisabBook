@@ -3,4 +3,21 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="app_logo">App Logo</string>
     <string name="default_web_client_id">152568087563-6qraclv17o67kicn6k45lgtmha2589ll.apps.googleusercontent.com</string>
+
+
+
+    <string name="attendance_prompt">Mark Attendance</string>
+    <string-array name="attendance_options">
+        <item>Mark Present</item>
+        <item>Mark Absent</item>
+        <item>Mark Half Day</item>
+        <item>Mark Late</item>
+    </string-array>
+
+
+    <string name="staff_added_successfully">Staff added successfully</string>
+    <string name="error_loading_staff">Error loading staff data</string>
+    <string name="contact_permission_required">Contact permission is required to add staff</string>
+    <string name="attendance_marked_successfully">Attendance marked successfully</string>
+    <string name="permissions_updated_successfully">Permissions updated successfully</string>
 </resources>

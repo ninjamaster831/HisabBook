@@ -1,6 +1,7 @@
 package com.guruyuknow.hisabbook
 
 import android.app.DatePickerDialog
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -136,10 +137,8 @@ class CashbookActivity : AppCompatActivity() {
 
         viewReportButton.setOnClickListener {
             // Navigate to report screen
-            // startActivity(Intent(this, ReportActivity::class.java))
-            Toast.makeText(this, "Report feature coming soon", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, CashbookReportActivity::class.java))
         }
-
         outButton.setOnClickListener {
             showAddEntryDialog("OUT")
         }
@@ -184,7 +183,7 @@ class CashbookActivity : AppCompatActivity() {
             entries.addAll(result)
 
             runOnUiThread {
-                entriesAdapter.notifyDataSetChanged()
+                entriesAdapter.setEntries(entries.toList())
                 updateBalances()
                 updateEmptyState()
             }

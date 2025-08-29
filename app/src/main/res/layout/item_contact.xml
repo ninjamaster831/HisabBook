@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="16dp"
+    android:background="?attr/selectableItemBackground">
+
+    <!-- Contact Avatar -->
+    <FrameLayout
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tv_contact_initials"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/circle_blue"
+            android:gravity="center"
+            android:text="6A"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+    </FrameLayout>
+
+    <!-- Contact Info -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="16dp"
+        android:layout_gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tv_contact_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="6th Avenue"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black" />
+
+        <TextView
+            android:id="@+id/tv_contact_phone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="+91 80932 14225"
+            android:textSize="14sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginTop="2dp" />
+
+    </LinearLayout>
+
+    <!-- Alphabet Index (Optional) -->
+    <TextView
+        android:id="@+id/tv_alphabet_index"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="A"
+        android:textSize="12sp"
+        android:textColor="@android:color/darker_gray"
+        android:layout_gravity="center_vertical"
+        android:visibility="gone" />
+
+</LinearLayout>
