@@ -71,4 +71,5 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
     // Fragment
     implementation("androidx.fragment:fragment-ktx:1.6.2")
+    implementation ("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 }

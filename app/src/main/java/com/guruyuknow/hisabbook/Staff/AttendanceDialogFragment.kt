@@ -10,7 +10,9 @@ import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.guruyuknow.hisabbook.SupabaseManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -48,6 +50,7 @@ class AttendanceDialogFragment : DialogFragment() {
 
         return MaterialAlertDialogBuilder(requireContext())
             .setTitle("Mark Attendance for $staffName")
+            .setMessage("Today: ${SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(Date())}")
             .setSingleChoiceItems(options, selectedOption) { _, which ->
                 selectedOption = which
                 Log.d("AttendanceDialog", "Selected attendance option: ${options[which]}")
@@ -63,63 +66,123 @@ class AttendanceDialogFragment : DialogFragment() {
                 Log.d("AttendanceDialog", "Saving attendance with status: $status")
                 markAttendance(status)
             }
-            .setNegativeButton("Cancel") { _, _ ->
+            .setNegativeButton("Cancel") { dialog, _ ->
                 Log.d("AttendanceDialog", "Attendance dialog cancelled")
+                dialog.dismiss()
             }
             .create()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun markAttendance(status: AttendanceStatus) {
+        // Use fragment's lifecycleScope (not viewLifecycleOwner) because this is called from onCreateDialog()
         lifecycleScope.launch {
+            // Capture context and simple UI state BEFORE any suspension
+            val dialogContext = context ?: run {
+                Log.e("AttendanceDialog", "Fragment not attached - aborting markAttendance")
+                return@launch
+            }
+
             try {
                 Log.d("AttendanceDialog", "Starting markAttendance for staffId: $staffId")
-                val currentUser = SupabaseManager.getCurrentUser()
-                Log.d("AttendanceDialog", "Current user: $currentUser")
-                if (currentUser != null) {
-                    if (staffId.isEmpty()) {
-                        Log.e("AttendanceDialog", "Invalid staffId: $staffId")
-                        Toast.makeText(requireContext(), "Error: Invalid staff ID", Toast.LENGTH_LONG).show()
-                        return@launch
-                    }
-                    val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                    val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
 
-                    val attendance = currentUser.id?.let {
-                        Attendance(
-                            staffId = staffId,
-                            businessOwnerId = it,
-                            date = today,
-                            status = status,
-                            checkInTime = if (status == AttendanceStatus.PRESENT || status == AttendanceStatus.LATE) currentTime else null
-                        )
+                // Fetch current user on IO dispatcher
+                val currentUser = withContext(Dispatchers.IO) {
+                    try {
+                        SupabaseManager.getCurrentUser()
+                    } catch (ex: Exception) {
+                        Log.e("AttendanceDialog", "Error getting current user (IO): ${ex.message}", ex)
+                        null
                     }
-                    Log.d("AttendanceDialog", "Attendance object created: $attendance")
-
-                    if (attendance != null) {
-                        val result = SupabaseManager.markAttendance(attendance)
-                        if (result.isSuccess) {
-                            Log.d("AttendanceDialog", "Attendance marked successfully: ${result.getOrNull()}")
-                            Toast.makeText(requireContext(), "Attendance marked successfully", Toast.LENGTH_SHORT).show()
-                            // Refresh parent activity
-                            requireActivity().recreate()
-                        } else {
-                            val errorMessage = result.exceptionOrNull()?.message ?: "Unknown error"
-                            Log.e("AttendanceDialog", "Error marking attendance: $errorMessage", result.exceptionOrNull())
-                            Toast.makeText(requireContext(), "Error marking attendance: $errorMessage", Toast.LENGTH_LONG).show()
-                        }
-                    } else {
-                        Log.e("AttendanceDialog", "Attendance object is null, likely due to missing user ID")
-                        Toast.makeText(requireContext(), "Error: Unable to create attendance record", Toast.LENGTH_LONG).show()
-                    }
-                } else {
-                    Log.e("AttendanceDialog", "No current user found")
-                    Toast.makeText(requireContext(), "Error: No user logged in", Toast.LENGTH_LONG).show()
                 }
+
+                // If fragment got detached while awaiting, bail out
+                if (!isAdded) {
+                    Log.w("AttendanceDialog", "Fragment detached after getCurrentUser - aborting")
+                    return@launch
+                }
+
+                Log.d("AttendanceDialog", "Current user: $currentUser")
+
+                if (currentUser?.id == null) {
+                    Log.e("AttendanceDialog", "No current user found or user ID is null")
+                    Toast.makeText(dialogContext, "Error: No user logged in", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+
+                if (staffId.isEmpty()) {
+                    Log.e("AttendanceDialog", "Invalid staffId: $staffId")
+                    Toast.makeText(dialogContext, "Error: Invalid staff ID", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+
+                val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+
+                val attendance = Attendance(
+                    staffId = staffId,
+                    businessOwnerId = currentUser.id,
+                    date = today,
+                    status = status,
+                    checkInTime = if (status == AttendanceStatus.PRESENT || status == AttendanceStatus.LATE) currentTime else null,
+                    notes = when (status) {
+                        AttendanceStatus.LATE -> "Marked as late"
+                        AttendanceStatus.HALF_DAY -> "Half day attendance"
+                        AttendanceStatus.ABSENT -> "Marked absent"
+                        else -> null
+                    }
+                )
+
+                Log.d("AttendanceDialog", "Attendance object created: $attendance")
+
+                // perform markAttendance on IO
+                val result = withContext(Dispatchers.IO) {
+                    try {
+                        SupabaseManager.markAttendance(attendance)
+                    } catch (ex: Exception) {
+                        Log.e("AttendanceDialog", "markAttendance IO error: ${ex.message}", ex)
+                        Result.failure<Attendance>(ex)
+                    }
+                }
+
+                // check again fragment attachment before UI updates
+                if (!isAdded) {
+                    Log.w("AttendanceDialog", "Fragment detached after markAttendance - aborting UI updates")
+                    return@launch
+                }
+
+                if (result.isSuccess) {
+                    val message = when (status) {
+                        AttendanceStatus.PRESENT -> "Marked $staffName as Present"
+                        AttendanceStatus.ABSENT -> "Marked $staffName as Absent"
+                        AttendanceStatus.HALF_DAY -> "Marked $staffName as Half Day"
+                        AttendanceStatus.LATE -> "Marked $staffName as Late"
+                    }
+
+                    Toast.makeText(dialogContext, message, Toast.LENGTH_SHORT).show()
+
+                    // Safe notify parent activity
+                    (activity as? StaffActivity)?.let { activitySafe ->
+                        if (isAdded) activitySafe.refreshData()
+                    }
+
+                    if (isAdded) dismiss()
+                } else {
+                    val errorMessage = result.exceptionOrNull()?.message ?: "Unknown error"
+                    Log.e("AttendanceDialog", "Error marking attendance: $errorMessage", result.exceptionOrNull())
+                    Toast.makeText(dialogContext, "Error: $errorMessage", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // Job was cancelled by lifecycle — swallow quietly
+                Log.w("AttendanceDialog", "markAttendance cancelled")
             } catch (e: Exception) {
                 Log.e("AttendanceDialog", "Exception marking attendance: ${e.message}", e)
-                Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                if (isAdded) {
+                    Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
+
+
 }

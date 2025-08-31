@@ -17,30 +17,57 @@ import io.github.jan.supabase.gotrue.providers.Google
 import io.github.jan.supabase.gotrue.providers.builtin.IDToken
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import kotlin.coroutines.cancellation.CancellationException
 
 object SupabaseManager {
-
+    private var isClientInitialized = false
     private const val SUPABASE_URL = "https://vqhmuwjizefxahczixxx.supabase.co"
     private const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxaG11d2ppemVmeGFoY3ppeHh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2NzIzODYsImV4cCI6MjA2NTI0ODM4Nn0.JJKfWjHfhl4OWeOqsyJzjL0Hk5iFbjNl6YOI4BFcHoE"
-
-    val client = createSupabaseClient(
+    var client = createSupabaseClient(
         supabaseUrl = SUPABASE_URL,
         supabaseKey = SUPABASE_ANON_KEY
     ) {
         install(Auth)
         install(Postgrest)
         install(Storage)
+    }.also {
+        isClientInitialized = true
+        Log.d("SupabaseManager", "Supabase client initialized with URL: $SUPABASE_URL")
     }
+    fun recreateClient() {
+        try {
+            Log.d("SupabaseManager", "Recreating Supabase client...")
+            client = createSupabaseClient(
+                supabaseUrl = SUPABASE_URL,
+                supabaseKey = SUPABASE_ANON_KEY
+            ) {
+                install(Auth)
+                install(Postgrest)
+                install(Storage)
+            }
+            isClientInitialized = true
+            Log.d("SupabaseManager", "Client recreated successfully")
+        } catch (e: Exception) {
+            Log.e("SupabaseManager", "Error recreating client: ${e.message}", e)
+        }
+    }
+
+
+
 
     suspend fun signInWithGoogle(idToken: String): Result<User?> {
         return try {
@@ -233,29 +260,57 @@ object SupabaseManager {
 
     suspend fun getCurrentUser(): User? {
         return try {
-            Log.d("SupabaseManager", "Fetching current user")
-            val supabaseUser = client.auth.currentUserOrNull()
-            Log.d("SupabaseManager", "Supabase auth user: $supabaseUser")
+            withContext(Dispatchers.IO) {
+                if (!isClientInitialized) {
+                    Log.e("SupabaseManager", "Supabase client not initialized")
+                    return@withContext null
+                }
 
-            if (supabaseUser != null) {
-                val dbUser = client.from("user_profiles")
-                    .select {
-                        filter {
-                            eq("id", supabaseUser.id)
-                        }
+                Log.d("SupabaseManager", "Fetching current user (auth)...")
+                val supabaseUser = client.auth.currentUserOrNull()
+                Log.d("SupabaseManager", "Supabase auth user: $supabaseUser")
+
+                if (supabaseUser == null) {
+                    Log.d("SupabaseManager", "No authenticated user found")
+                    return@withContext null
+                }
+
+                Log.d("SupabaseManager", "Querying user_profiles for id=${supabaseUser.id}")
+
+                try {
+                    val dbUser = withTimeout(10000) {
+                        client.from("user_profiles")
+                            .select {
+                                filter { eq("id", supabaseUser.id) }
+                            }
+                            .decodeSingleOrNull<User>()
                     }
-                    .decodeSingle<User>()
-                Log.d("SupabaseManager", "Database user: $dbUser")
-                dbUser
-            } else {
-                Log.e("SupabaseManager", "No authenticated user found")
-                null
+
+                    Log.d("SupabaseManager", "Database user: $dbUser")
+                    dbUser
+                } catch (ex: TimeoutCancellationException) {
+                    Log.e("SupabaseManager", "Timeout fetching user from database")
+                    null
+                } catch (ex: Exception) {
+                    Log.e("SupabaseManager", "Error fetching DB user: ${ex.message}", ex)
+
+                    if (ex.message?.contains("localhost") == true) {
+                        Log.w("SupabaseManager", "Detected localhost error, recreating client")
+                        recreateClient()
+                    }
+                    null
+                }
             }
+        } catch (e: CancellationException) {
+            Log.w("SupabaseManager", "getCurrentUser cancelled: ${e.message}")
+            null
         } catch (e: Exception) {
             Log.e("SupabaseManager", "Error getting current user: ${e.message}", e)
             null
         }
     }
+
+
 
     suspend fun signOut() {
         try {
@@ -318,22 +373,6 @@ object SupabaseManager {
         }
     }
 
-    suspend fun deleteStaff(staffId: String): Result<Boolean> {
-        return try {
-            Log.d("SupabaseManager", "Deleting staff with ID: $staffId")
-            client.from("staff")
-                .update(mapOf("isActive" to false)) {
-                    filter {
-                        eq("id", staffId)
-                    }
-                }
-            Log.d("SupabaseManager", "Staff deleted successfully: $staffId")
-            Result.success(true)
-        } catch (e: Exception) {
-            Log.e("SupabaseManager", "Error deleting staff: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
 
     suspend fun markAttendance(attendance: Attendance): Result<Attendance> {
         return try {
@@ -376,15 +415,54 @@ object SupabaseManager {
     suspend fun getAttendanceByStaffAndMonth(staffId: String, month: String): Result<List<Attendance>> {
         return try {
             Log.d("SupabaseManager", "Fetching attendance for staffId: $staffId, month: $month")
+
+            // Expecting month in "YYYY-MM" form (e.g. "2025-08"). This is lenient:
+            val parts = month.split("-")
+            if (parts.size < 2) {
+                val msg = "Invalid month format. Expected YYYY-MM, got: $month"
+                Log.e("SupabaseManager", msg)
+                return Result.failure(Exception(msg))
+            }
+
+            val year = parts[0].toIntOrNull() ?: run {
+                return Result.failure(Exception("Invalid year in month: $month"))
+            }
+            val monthNum = parts[1].toIntOrNull() ?: run {
+                return Result.failure(Exception("Invalid month number in month: $month"))
+            }
+            // normalize to 2-digit month
+            val monthPadded = monthNum.toString().padStart(2, '0')
+            val start = "%04d-%02d-01".format(year, monthNum)
+
+            // compute first day of next month
+            val nextYear: Int
+            val nextMonth: Int
+            if (monthNum == 12) {
+                nextYear = year + 1
+                nextMonth = 1
+            } else {
+                nextYear = year
+                nextMonth = monthNum + 1
+            }
+            val nextMonthPadded = nextMonth.toString().padStart(2, '0')
+            val end = "%04d-%02d-01".format(nextYear, nextMonth)
+
+            Log.d("SupabaseManager", "Query range: [$start, $end)")
+
             val response = client.from("attendance")
                 .select {
                     filter {
                         eq("staff_id", staffId)
-                        like("date", "$month%")
+                        // date >= start AND date < end  => covers the whole month regardless of column being date or timestamp
+                        gte("date", start)
+                        lt("date", end)
                     }
+                    // optional: order by date descending
+                    order(column = "date", order = Order.DESCENDING)
                 }
                 .decodeList<Attendance>()
-            Log.d("SupabaseManager", "Attendance fetched successfully: $response")
+
+            Log.d("SupabaseManager", "Attendance fetched successfully: ${response.size}")
             Result.success(response)
         } catch (e: Exception) {
             Log.e("SupabaseManager", "Error fetching attendance: ${e.message}", e)
@@ -392,25 +470,7 @@ object SupabaseManager {
         }
     }
 
-    suspend fun getTodayAttendance(businessOwnerId: String): Result<List<Attendance>> {
-        return try {
-            val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-            Log.d("SupabaseManager", "Fetching today's attendance for businessOwnerId: $businessOwnerId, date: $today")
-            val response = client.from("attendance")
-                .select {
-                    filter {
-                        eq("business_owner_id", businessOwnerId)
-                        eq("date", today)
-                    }
-                }
-                .decodeList<Attendance>()
-            Log.d("SupabaseManager", "Today's attendance fetched successfully: $response")
-            Result.success(response)
-        } catch (e: Exception) {
-            Log.e("SupabaseManager", "Error fetching today's attendance: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun calculateAndSaveSalary(staffId: String, month: String): Result<Salary> {
@@ -497,6 +557,184 @@ object SupabaseManager {
             Result.success(response)
         } catch (e: Exception) {
             Log.e("SupabaseManager", "Error updating attendance: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+    suspend fun getAttendanceByStaff(staffId: String, limit: Int = 30): Result<List<Attendance>> {
+        return try {
+            Log.d("SupabaseManager", "Fetching recent attendance for staffId: $staffId, limit: $limit")
+            val response = client.from("attendance")
+                .select {
+                    filter { eq("staff_id", staffId) }
+                    order(column = "date", order = Order.DESCENDING)   // <- correct form
+                    limit(limit.toLong())
+                }
+                .decodeList<Attendance>()
+            Log.d("SupabaseManager", "Recent attendance fetched successfully: ${response.size} records")
+            Result.success(response)
+        } catch (e: Exception) {
+            Log.e("SupabaseManager", "Error fetching recent attendance: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun calculateMonthlySalary(staffId: String, month: String): Result<Salary?> {
+        return try {
+            Log.d("SupabaseManager", "Calculating monthly salary for staffId: $staffId, month: $month")
+
+            // Get staff details
+            val staffResult = getStaffById(staffId)
+            val staff = staffResult.getOrNull() ?: return Result.failure(Exception("Staff not found"))
+
+            // Get attendance for the month
+            val attendanceResult = getAttendanceByStaffAndMonth(staffId, month)
+            val attendanceList = attendanceResult.getOrNull() ?: emptyList()
+
+            // Calculate attendance summary
+            val presentDays = attendanceList.count { it.status == AttendanceStatus.PRESENT }
+            val absentDays = attendanceList.count { it.status == AttendanceStatus.ABSENT }
+            val halfDays = attendanceList.count { it.status == AttendanceStatus.HALF_DAY }
+            val lateDays = attendanceList.count { it.status == AttendanceStatus.LATE }
+
+            // Calculate salary based on salary type
+            val calculatedSalary = when (staff.salaryType) {
+                SalaryType.MONTHLY -> staff.salaryAmount
+                SalaryType.DAILY -> {
+                    val workingDays = presentDays + lateDays + (halfDays * 0.5)
+                    staff.salaryAmount * workingDays
+                }
+            }
+
+            // Get total days in month (simplified calculation)
+            val totalDays = when {
+                attendanceList.isNotEmpty() -> attendanceList.size
+                else -> 30 // default fallback
+            }
+
+            val salary = Salary(
+                staffId = staffId,
+                businessOwnerId = staff.businessOwnerId,
+                month = month,
+                basicSalary = staff.salaryAmount,
+                totalDays = totalDays,
+                presentDays = presentDays + lateDays, // Late is considered present for salary
+                absentDays = absentDays,
+                halfDays = halfDays,
+                lateDays = lateDays,
+                calculatedSalary = calculatedSalary,
+                finalSalary = calculatedSalary
+            )
+
+            Log.d("SupabaseManager", "Monthly salary calculated: $salary")
+            Result.success(salary)
+        } catch (e: Exception) {
+            Log.e("SupabaseManager", "Error calculating monthly salary: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+    suspend fun saveSalary(salary: Salary): Result<Salary> {
+        return try {
+            Log.d("SupabaseManager", "Saving salary: $salary")
+
+            // Check if salary record already exists
+            val existingSalary = client.from("salary")
+                .select {
+                    filter {
+                        eq("staff_id", salary.staffId)
+                        eq("month", salary.month)
+                    }
+                }
+                .decodeSingleOrNull<Salary>()
+
+            val response = if (existingSalary != null) {
+                // Update existing salary
+                Log.d("SupabaseManager", "Updating existing salary record")
+                client.from("salary")
+                    .update(salary) {
+                        filter {
+                            eq("id", existingSalary.id)
+                        }
+                    }
+                    .decodeSingle<Salary>()
+            } else {
+                // Insert new salary
+                Log.d("SupabaseManager", "Inserting new salary record")
+                client.from("salary")
+                    .insert(salary)
+                    .decodeSingle<Salary>()
+            }
+
+            Log.d("SupabaseManager", "Salary saved successfully: $response")
+            Result.success(response)
+        } catch (e: Exception) {
+            Log.e("SupabaseManager", "Error saving salary: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+    suspend fun getSalaryByStaffAndMonth(staffId: String, month: String): Result<Salary?> {
+        return try {
+            Log.d("SupabaseManager", "Fetching salary for staffId: $staffId, month: $month")
+            val response = client.from("salary")
+                .select {
+                    filter {
+                        eq("staff_id", staffId)
+                        eq("month", month)
+                    }
+                }
+                .decodeSingleOrNull<Salary>()
+            Log.d("SupabaseManager", "Salary fetched: $response")
+            Result.success(response)
+        } catch (e: Exception) {
+            Log.e("SupabaseManager", "Error fetching salary: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+    suspend fun deleteStaff(staffId: String): Result<Boolean> {
+        return try {
+            Log.d("SupabaseManager", "Deleting staff with ID: $staffId")
+            client.from("staff")
+                .update(mapOf("is_active" to false)) { // Changed from "isActive" to "is_active"
+                    filter {
+                        eq("id", staffId)
+                    }
+                }
+            Log.d("SupabaseManager", "Staff deleted successfully: $staffId")
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e("SupabaseManager", "Error deleting staff: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+    suspend fun getTodayAttendance(businessOwnerId: String): Result<List<Attendance>> {
+        return try {
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val today = sdf.format(Date())
+
+            // compute next day using Calendar to form an exclusive upper bound
+            val parsed = sdf.parse(today) ?: Date()
+            val cal = Calendar.getInstance().apply { time = parsed }
+            cal.add(Calendar.DATE, 1)
+            val tomorrow = sdf.format(cal.time)
+
+            Log.d("SupabaseManager", "Fetching today's attendance for businessOwnerId: $businessOwnerId, date range: [$today, $tomorrow)")
+
+            val response = client.from("attendance")
+                .select {
+                    filter {
+                        eq("business_owner_id", businessOwnerId)
+                        gte("date", today)
+                        lt("date", tomorrow)
+                    }
+                    order(column = "created_at", order = Order.DESCENDING)
+                }
+                .decodeList<Attendance>()
+
+            Log.d("SupabaseManager", "Today's attendance fetched successfully: ${response.size}")
+            Result.success(response)
+        } catch (e: Exception) {
+            Log.e("SupabaseManager", "Error fetching today's attendance: ${e.message}", e)
             Result.failure(e)
         }
     }

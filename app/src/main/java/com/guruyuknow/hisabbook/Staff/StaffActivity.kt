@@ -1,6 +1,5 @@
 package com.guruyuknow.hisabbook.Staff
 
-
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -25,6 +24,7 @@ class StaffActivity : AppCompatActivity() {
     private lateinit var staffAdapter: StaffAdapter
     private val staffList = mutableListOf<Staff>()
     private var currentUser: User? = null
+    private var currentFilter = "all"
 
     private val contactPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -32,7 +32,9 @@ class StaffActivity : AppCompatActivity() {
         if (isGranted) {
             openContactPicker()
         } else {
-            Toast.makeText(this, "Contact permission is required to add staff", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Contact permission is required to add staff from contacts", Toast.LENGTH_LONG).show()
+            // Allow manual entry without contacts
+            openManualStaffEntry()
         }
     }
 
@@ -76,9 +78,27 @@ class StaffActivity : AppCompatActivity() {
             checkContactPermissionAndProceed()
         }
 
-        binding.chipAll.setOnClickListener { filterStaff("all") }
-        binding.chipSalaryAdded.setOnClickListener { filterStaff("salary_added") }
-        binding.chipPermissionGiven.setOnClickListener { filterStaff("permission_given") }
+        binding.chipAll.setOnClickListener {
+            if (!binding.chipAll.isChecked) {
+                filterStaff("all")
+            }
+        }
+
+        binding.chipSalaryAdded.setOnClickListener {
+            if (!binding.chipSalaryAdded.isChecked) {
+                filterStaff("salary_added")
+            }
+        }
+
+        binding.chipPermissionGiven.setOnClickListener {
+            if (!binding.chipPermissionGiven.isChecked) {
+                filterStaff("permission_given")
+            }
+        }
+
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            refreshData()
+        }
     }
 
     private fun loadCurrentUser() {
@@ -87,35 +107,47 @@ class StaffActivity : AppCompatActivity() {
                 currentUser = SupabaseManager.getCurrentUser()
                 currentUser?.let { user ->
                     user.id?.let { loadStaffData(it) }
+                } ?: run {
+                    Toast.makeText(this@StaffActivity, "Please log in again", Toast.LENGTH_SHORT).show()
+                    finish()
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@StaffActivity, "Error loading user data", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@StaffActivity, "Error loading user data: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    fun refreshData() {
+        currentUser?.id?.let { loadStaffData(it) }
     }
 
     private fun loadStaffData(businessOwnerId: String) {
         lifecycleScope.launch {
             try {
+                binding.swipeRefreshLayout.isRefreshing = true
+                binding.progressBar.visibility = View.VISIBLE
+
                 val result = SupabaseManager.getStaffByBusinessOwner(businessOwnerId)
                 if (result.isSuccess) {
                     val staff = result.getOrNull() ?: emptyList()
                     staffList.clear()
                     staffList.addAll(staff)
-                    staffAdapter.notifyDataSetChanged()
+                    staffAdapter.updateList(staff)
 
                     updateUI(staff)
                     calculateTotalDue(staff)
+
+                    // Apply current filter after loading data
+                    filterStaff(currentFilter)
                 } else {
                     val error = result.exceptionOrNull()?.message ?: "Unknown error"
                     Toast.makeText(this@StaffActivity, "Error loading staff: $error", Toast.LENGTH_SHORT).show()
-                    println("Staff loading error: $error")  // Add logging
-                    result.exceptionOrNull()?.printStackTrace()  // Print stack trace
                 }
             } catch (e: Exception) {
                 Toast.makeText(this@StaffActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                println("Staff loading exception: ${e.message}")  // Add logging
-                e.printStackTrace()  // Print stack trace
+            } finally {
+                binding.progressBar.visibility = View.GONE
+                binding.swipeRefreshLayout.isRefreshing = false
             }
         }
     }
@@ -124,9 +156,11 @@ class StaffActivity : AppCompatActivity() {
         if (staff.isEmpty()) {
             binding.layoutEmpty.visibility = View.VISIBLE
             binding.layoutContent.visibility = View.GONE
+            binding.swipeRefreshLayout.visibility = View.GONE
         } else {
             binding.layoutEmpty.visibility = View.GONE
             binding.layoutContent.visibility = View.VISIBLE
+            binding.swipeRefreshLayout.visibility = View.VISIBLE
 
             // Update attendance summary for today
             updateTodayAttendanceSummary()
@@ -137,11 +171,13 @@ class StaffActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 currentUser?.let { user ->
-                    val result = user.id?.let { SupabaseManager.getTodayAttendance(it) }
-                    if (result != null) {
+                    user.id?.let { userId ->
+                        val result = SupabaseManager.getTodayAttendance(userId)
                         if (result.isSuccess) {
-                            val todayAttendance = result?.getOrNull() ?: emptyList()
-                            val presentCount = todayAttendance.count { it.status == AttendanceStatus.PRESENT }
+                            val todayAttendance = result.getOrNull() ?: emptyList()
+                            val presentCount = todayAttendance.count {
+                                it.status == AttendanceStatus.PRESENT || it.status == AttendanceStatus.LATE
+                            }
                             val absentCount = todayAttendance.count { it.status == AttendanceStatus.ABSENT }
                             val halfDayCount = todayAttendance.count { it.status == AttendanceStatus.HALF_DAY }
 
@@ -152,7 +188,7 @@ class StaffActivity : AppCompatActivity() {
                     }
                 }
             } catch (e: Exception) {
-                // Handle error silently
+                // Handle error silently or show subtle message
             }
         }
     }
@@ -163,9 +199,11 @@ class StaffActivity : AppCompatActivity() {
                 var totalDue = 0.0
                 val currentMonth = SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
 
-                staff.forEach { staffMember ->
+                for (staffMember in staff) {
                     when (staffMember.salaryType) {
-                        SalaryType.MONTHLY -> totalDue += staffMember.salaryAmount
+                        SalaryType.MONTHLY -> {
+                            totalDue += staffMember.salaryAmount
+                        }
                         SalaryType.DAILY -> {
                             val attendanceResult = SupabaseManager.getAttendanceByStaffAndMonth(
                                 staffMember.id, currentMonth
@@ -184,7 +222,7 @@ class StaffActivity : AppCompatActivity() {
                 binding.tvTotalDue.text = "₹${totalDue.toInt()}"
                 binding.tvStaffCount.text = "for ${staff.size} staff"
             } catch (e: Exception) {
-                // Handle error
+                // Handle error silently
             }
         }
     }
@@ -204,7 +242,12 @@ class StaffActivity : AppCompatActivity() {
 
     private fun openContactPicker() {
         val intent = Intent(this, ContactPickerActivity::class.java)
-        startActivity(intent)
+        startActivityForResult(intent, REQUEST_CODE_ADD_STAFF)
+    }
+
+    private fun openManualStaffEntry() {
+        val intent = Intent(this, StaffConfigurationActivity::class.java)
+        startActivityForResult(intent, REQUEST_CODE_ADD_STAFF)
     }
 
     private fun openStaffDetails(staff: Staff) {
@@ -215,37 +258,34 @@ class StaffActivity : AppCompatActivity() {
 
     private fun markAttendance(staff: Staff) {
         // Show attendance marking dialog
-        AttendanceDialogFragment.newInstance(staff.id, staff.name)
-            .show(supportFragmentManager, "attendance_dialog")
+        val dialog = AttendanceDialogFragment.newInstance(staff.id, staff.name)
+        dialog.show(supportFragmentManager, "attendance_dialog")
     }
 
     private fun openStaffPermissions(staff: Staff) {
         val intent = Intent(this, StaffPermissionsActivity::class.java)
         intent.putExtra("staff_id", staff.id)
-        startActivity(intent)
+        startActivityForResult(intent, REQUEST_CODE_EDIT_STAFF)
     }
 
     private fun filterStaff(filter: String) {
-        // Implement filtering logic based on the filter type
-        when (filter) {
-            "all" -> {
-                binding.chipAll.isChecked = true
-                binding.chipSalaryAdded.isChecked = false
-                binding.chipPermissionGiven.isChecked = false
-            }
-            "salary_added" -> {
-                binding.chipAll.isChecked = false
-                binding.chipSalaryAdded.isChecked = true
-                binding.chipPermissionGiven.isChecked = false
-            }
-            "permission_given" -> {
-                binding.chipAll.isChecked = false
-                binding.chipSalaryAdded.isChecked = false
-                binding.chipPermissionGiven.isChecked = true
-            }
-        }
+        currentFilter = filter
+
+        // Update chip states
+        binding.chipAll.isChecked = (filter == "all")
+        binding.chipSalaryAdded.isChecked = (filter == "salary_added")
+        binding.chipPermissionGiven.isChecked = (filter == "permission_given")
+
         // Apply filter to adapter
         staffAdapter.filter(filter)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == RESULT_OK && (requestCode == REQUEST_CODE_ADD_STAFF || requestCode == REQUEST_CODE_EDIT_STAFF)) {
+            // Refresh data when returning from staff-related activities
+            refreshData()
+        }
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -256,8 +296,11 @@ class StaffActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         // Refresh data when returning from other activities
-        currentUser?.let { user ->
-            user.id?.let { loadStaffData(it) }
-        }
+        refreshData()
+    }
+
+    companion object {
+        private const val REQUEST_CODE_ADD_STAFF = 100
+        private const val REQUEST_CODE_EDIT_STAFF = 101
     }
 }
