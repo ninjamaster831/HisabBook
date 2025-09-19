@@ -3,14 +3,20 @@ package com.guruyuknow.hisabbook.Staff
 import android.app.Dialog
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
-import android.widget.Toast
+import android.view.WindowManager
+import android.widget.TextView
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AlertDialog
+import androidx.core.view.isVisible
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.guruyuknow.hisabbook.R
 import com.guruyuknow.hisabbook.SupabaseManager
+import io.github.jan.supabase.gotrue.auth
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -21,14 +27,14 @@ class AttendanceDialogFragment : DialogFragment() {
     private lateinit var staffName: String
 
     companion object {
-        fun newInstance(staffId: String, staffName: String): AttendanceDialogFragment {
-            val fragment = AttendanceDialogFragment()
-            val args = Bundle().apply {
+        const val RESULT_KEY = "attendance_result"
+        const val RESULT_OK = "ok"
+
+        fun newInstance(staffId: String, staffName: String) = AttendanceDialogFragment().apply {
+            arguments = Bundle().apply {
                 putString("staff_id", staffId)
                 putString("staff_name", staffName)
             }
-            fragment.arguments = args
-            return fragment
         }
     }
 
@@ -38,88 +44,125 @@ class AttendanceDialogFragment : DialogFragment() {
             staffId = it.getString("staff_id", "")
             staffName = it.getString("staff_name", "")
         }
-        Log.d("AttendanceDialog", "Dialog created for staffId: $staffId, staffName: $staffName")
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val options = arrayOf("Present", "Absent", "Half Day", "Late")
-        var selectedOption = 0
+        var selected = 0
 
-        return MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle("Mark Attendance for $staffName")
-            .setSingleChoiceItems(options, selectedOption) { _, which ->
-                selectedOption = which
-                Log.d("AttendanceDialog", "Selected attendance option: ${options[which]}")
+            .setSingleChoiceItems(options, selected) { _, which -> selected = which }
+            .setPositiveButton("Save", null) // we’ll override to prevent auto-dismiss
+            .setNegativeButton("Cancel", null)
+            .create()
+
+        // Optional: avoid keyboard pushing dialog oddly
+        dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+
+        dialog.setOnShowListener {
+            val btnSave = (dialog as AlertDialog).getButton(AlertDialog.BUTTON_POSITIVE)
+            val btnCancel = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+
+            // Add a tiny inline "Saving..." text view (reuses dialog’s message slot)
+            val savingView = TextView(requireContext()).apply {
+                text = "Saving…"
+                setPadding(32, 24, 32, 0)
+                isVisible = false
             }
-            .setPositiveButton("Save") { _, _ ->
-                val status = when (selectedOption) {
+            dialog.setView(savingView)
+
+            btnSave.setOnClickListener {
+                // keep dialog open; disable buttons during save
+                btnSave.isEnabled = false
+                btnCancel.isEnabled = false
+                savingView.isVisible = true
+                isCancelable = false
+                dialog.setCanceledOnTouchOutside(false)
+
+                val status = when (selected) {
                     0 -> AttendanceStatus.PRESENT
                     1 -> AttendanceStatus.ABSENT
                     2 -> AttendanceStatus.HALF_DAY
                     3 -> AttendanceStatus.LATE
                     else -> AttendanceStatus.PRESENT
                 }
-                Log.d("AttendanceDialog", "Saving attendance with status: $status")
-                markAttendance(status)
-            }
-            .setNegativeButton("Cancel") { _, _ ->
-                Log.d("AttendanceDialog", "Attendance dialog cancelled")
-            }
-            .create()
-    }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun markAttendance(status: AttendanceStatus) {
-        lifecycleScope.launch {
-            try {
-                Log.d("AttendanceDialog", "Starting markAttendance for staffId: $staffId")
-                val currentUser = SupabaseManager.getCurrentUser()
-                Log.d("AttendanceDialog", "Current user: $currentUser")
-                if (currentUser != null) {
-                    if (staffId.isEmpty()) {
-                        Log.e("AttendanceDialog", "Invalid staffId: $staffId")
-                        Toast.makeText(requireContext(), "Error: Invalid staff ID", Toast.LENGTH_LONG).show()
-                        return@launch
-                    }
-                    val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                    val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val ui = { block: () -> Unit -> lifecycleScope.launch(Dispatchers.Main) { block() } }
 
-                    val attendance = currentUser.id?.let {
-                        Attendance(
+                    try {
+                        val authUser = SupabaseManager.client.auth.currentUserOrNull()
+                        if (authUser == null) {
+                            ui {
+                                toast("Error: No user logged in")
+                                resetButtons(btnSave, btnCancel, savingView)
+                            }
+                            return@launch
+                        }
+                        if (staffId.isEmpty()) {
+                            ui {
+                                toast("Error: Invalid staff ID")
+                                resetButtons(btnSave, btnCancel, savingView)
+                            }
+                            return@launch
+                        }
+
+                        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                        val now = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+
+                        val attendance = Attendance(
                             staffId = staffId,
-                            businessOwnerId = it,
+                            businessOwnerId = authUser.id,
                             date = today,
                             status = status,
-                            checkInTime = if (status == AttendanceStatus.PRESENT || status == AttendanceStatus.LATE) currentTime else null
+                            checkInTime = if (status == AttendanceStatus.PRESENT || status == AttendanceStatus.LATE) now else null
                         )
-                    }
-                    Log.d("AttendanceDialog", "Attendance object created: $attendance")
 
-                    if (attendance != null) {
                         val result = SupabaseManager.markAttendance(attendance)
                         if (result.isSuccess) {
-                            Log.d("AttendanceDialog", "Attendance marked successfully: ${result.getOrNull()}")
-                            Toast.makeText(requireContext(), "Attendance marked successfully", Toast.LENGTH_SHORT).show()
-                            // Refresh parent activity
-                            requireActivity().recreate()
+                            ui {
+                                toast("Attendance marked")
+                                parentFragmentManager.setFragmentResult(RESULT_KEY, Bundle().apply {
+                                    putBoolean(RESULT_OK, true)
+                                })
+                                // now it’s safe to dismiss; job already completed
+                                dismissAllowingStateLoss()
+                            }
                         } else {
-                            val errorMessage = result.exceptionOrNull()?.message ?: "Unknown error"
-                            Log.e("AttendanceDialog", "Error marking attendance: $errorMessage", result.exceptionOrNull())
-                            Toast.makeText(requireContext(), "Error marking attendance: $errorMessage", Toast.LENGTH_LONG).show()
+                            val msg = result.exceptionOrNull()?.message ?: "Unknown error"
+                            ui {
+                                toast("Error: $msg")
+                                resetButtons(btnSave, btnCancel, savingView)
+                            }
                         }
-                    } else {
-                        Log.e("AttendanceDialog", "Attendance object is null, likely due to missing user ID")
-                        Toast.makeText(requireContext(), "Error: Unable to create attendance record", Toast.LENGTH_LONG).show()
+                    } catch (e: Exception) {
+                        ui {
+                            toast("Error: ${e.message ?: "Operation failed"}")
+                            resetButtons(btnSave, btnCancel, savingView)
+                        }
                     }
-                } else {
-                    Log.e("AttendanceDialog", "No current user found")
-                    Toast.makeText(requireContext(), "Error: No user logged in", Toast.LENGTH_LONG).show()
                 }
-            } catch (e: Exception) {
-                Log.e("AttendanceDialog", "Exception marking attendance: ${e.message}", e)
-                Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
+        return dialog
+    }
+
+    private fun resetButtons(
+        btnSave: android.widget.Button,
+        btnCancel: android.widget.Button,
+        savingView: TextView
+    ) {
+        btnSave.isEnabled = true
+        btnCancel.isEnabled = true
+        savingView.isVisible = false
+        isCancelable = true
+        dialog?.setCanceledOnTouchOutside(true)
+    }
+
+    private fun toast(msg: String) {
+        // avoid requireContext() after detach — we’re always on Main here
+        context?.let { android.widget.Toast.makeText(it, msg, android.widget.Toast.LENGTH_SHORT).show() }
     }
 }

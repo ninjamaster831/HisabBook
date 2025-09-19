@@ -7,6 +7,7 @@
     <color name="violet_dark_secondary">#4A148C</color>
     <color name="violet_dark_background">#1A1A2E</color>
     <color name="violet_dark_surface">#16213E</color>
+    <color name="dark_violet">#6A1B9A</color>
 
     <!-- Violet Light Theme -->
     <color name="violet_light_primary">#9C27B0</color>
@@ -17,7 +18,7 @@
     <color name="violet_accent">#E1BEE7</color>
     <color name="violet_text_primary">#FFFFFF</color>
     <color name="violet_text_secondary">#B39DDB</color>
-
+    <color name="background_light">#F5F5F5</color>
     <!-- Status Colors -->
     <color name="transparent">#00000000</color>
     <color name="gray_light">#F5F5F5</color>

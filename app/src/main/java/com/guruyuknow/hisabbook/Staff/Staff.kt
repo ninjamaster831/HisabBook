@@ -24,7 +24,3 @@ data class Staff @RequiresApi(Build.VERSION_CODES.O) constructor(
     @SerialName("created_at") val createdAt: String = Date().toInstant().toString(),  // Added SerialName
     @SerialName("updated_at") val updatedAt: String = Date().toInstant().toString()  // Added SerialName
 )
-
-enum class SalaryType {
-    MONTHLY, DAILY
-}

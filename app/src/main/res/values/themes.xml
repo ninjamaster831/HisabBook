@@ -20,6 +20,10 @@
         <item name="android:statusBarColor">@color/violet_dark_primary</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
+    <!-- Medium title for toolbar -->
+    <style name="Toolbar.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textColor">@android:color/white</item>
+    </style>
 
     <!-- Splash Theme -->
     <style name="Theme.HisabBook.Splash" parent="Theme.VioletApp">

@@ -4,9 +4,11 @@ import android.app.DatePickerDialog
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.widget.RadioGroup
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.guruyuknow.hisabbook.SupabaseManager
 import com.guruyuknow.hisabbook.User
@@ -16,6 +18,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import com.guruyuknow.hisabbook.R
 
 class StaffConfigurationActivity : AppCompatActivity() {
 
@@ -50,9 +53,10 @@ class StaffConfigurationActivity : AppCompatActivity() {
         selectedDate = today
         binding.tvSalaryStartDate.text = displayDate
 
-        // Set default salary type
-        binding.radioMonthly.isChecked = true
+        // Set default salary type with fallback colors
+        binding.radioGroupSalaryType.check(binding.radioMonthly.id)
         selectedSalaryType = SalaryType.MONTHLY
+        updateSalaryTypeUI(SalaryType.MONTHLY)
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -61,14 +65,17 @@ class StaffConfigurationActivity : AppCompatActivity() {
             showDatePicker()
         }
 
-        binding.radioMonthly.setOnClickListener {
-            selectedSalaryType = SalaryType.MONTHLY
-            binding.tvSalaryTypeDescription.text = "${getContactName()} gets monthly salary"
-        }
-
-        binding.radioDaily.setOnClickListener {
-            selectedSalaryType = SalaryType.DAILY
-            binding.tvSalaryTypeDescription.text = "${getContactName()} gets daily salary"
+        binding.radioGroupSalaryType.setOnCheckedChangeListener { _, checkedId ->
+            when (checkedId) {
+                binding.radioMonthly.id -> {
+                    selectedSalaryType = SalaryType.MONTHLY
+                    updateSalaryTypeUI(SalaryType.MONTHLY)
+                }
+                binding.radioDaily.id -> {
+                    selectedSalaryType = SalaryType.DAILY
+                    updateSalaryTypeUI(SalaryType.DAILY)
+                }
+            }
         }
 
         binding.switchAttendanceSalary.setOnCheckedChangeListener { _, isChecked ->
@@ -81,6 +88,34 @@ class StaffConfigurationActivity : AppCompatActivity() {
 
         binding.btnSave.setOnClickListener {
             saveStaffConfiguration()
+        }
+    }
+
+    private fun updateSalaryTypeUI(salaryType: SalaryType) {
+        val contactName = getContactName()
+        val primaryColor = try { ContextCompat.getColor(this, R.color.colorPrimary) } catch (e: Exception) { -0x9e0000 } // Fallback to #6200EE
+        val grayColor = try { ContextCompat.getColor(this, android.R.color.darker_gray) } catch (e: Exception) { -0x222222 } // Fallback to #222222
+        when (salaryType) {
+            SalaryType.MONTHLY -> {
+                binding.radioMonthly.isChecked = true
+                binding.radioDaily.isChecked = false
+                binding.cardMonthly.strokeWidth = 2
+                binding.cardMonthly.strokeColor = primaryColor
+                binding.cardDaily.strokeWidth = 1
+                binding.cardDaily.strokeColor = grayColor
+                binding.tvSalaryTypeDescription.text = "$contactName gets monthly salary"
+                binding.tvDailyDescription.text = "$contactName gets daily salary"
+            }
+            SalaryType.DAILY -> {
+                binding.radioDaily.isChecked = true
+                binding.radioMonthly.isChecked = false
+                binding.cardDaily.strokeWidth = 2
+                binding.cardDaily.strokeColor = primaryColor
+                binding.cardMonthly.strokeWidth = 1
+                binding.cardMonthly.strokeColor = grayColor
+                binding.tvSalaryTypeDescription.text = "$contactName gets monthly salary"
+                binding.tvDailyDescription.text = "$contactName gets daily salary"
+            }
         }
     }
 
@@ -102,6 +137,7 @@ class StaffConfigurationActivity : AppCompatActivity() {
         contactName?.let {
             binding.tvStaffName.text = it
             binding.tvSalaryTypeDescription.text = "$it gets monthly salary"
+            binding.tvDailyDescription.text = "$it gets daily salary"
 
             // Set initials
             val initials = it.split(" ").take(2).joinToString("") { word ->
@@ -114,14 +150,12 @@ class StaffConfigurationActivity : AppCompatActivity() {
             binding.tvStaffPhone.text = it
         }
 
-        // If no contact data, show manual entry fields
         if (contactName == null) {
             showManualEntryFields()
         }
     }
 
     private fun showManualEntryFields() {
-        // Show manual entry layout
         binding.layoutManualEntry.visibility = View.VISIBLE
         binding.layoutContactInfo.visibility = View.GONE
     }
@@ -209,12 +243,12 @@ class StaffConfigurationActivity : AppCompatActivity() {
     }
 
     private fun getContactName(): String {
-        return intent.getStringExtra("contact_name")
+        return intent.getStringExtra("contact_name")?.takeIf { it.isNotEmpty() }
             ?: binding.etManualName.text.toString().trim()
     }
 
     private fun getContactPhone(): String {
-        return intent.getStringExtra("contact_phone")
+        return intent.getStringExtra("contact_phone")?.takeIf { it.isNotEmpty() }
             ?: binding.etManualPhone.text.toString().trim()
     }
 

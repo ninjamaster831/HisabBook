@@ -1,5 +1,6 @@
 package com.guruyuknow.hisabbook
 
+import android.annotation.SuppressLint
 import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
@@ -29,6 +30,7 @@ import kotlinx.serialization.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
 
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 data class CashbookEntry(
     val id: String? = null,

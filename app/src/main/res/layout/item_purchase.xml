@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="4dp"
+    app:cardBackgroundColor="@android:color/white"
+    app:strokeColor="#E0E0E0"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_shopping_cart"
+                app:tint="#6200EE"
+                android:layout_marginEnd="12dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/purchaseDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="01 Jan 2024, 10:30"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:id="@+id/itemsCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="3 items"
+                    android:textSize="14sp"
+                    android:textColor="#757575"
+                    android:layout_marginTop="4dp"
+                    android:fontFamily="sans-serif" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/purchaseAmount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="₹1,250.00"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#6200EE"
+                android:fontFamily="sans-serif-medium" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/itemsList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Rice (2kg), Oil (1L), Sugar (1kg)"
+            android:textSize="14sp"
+            android:textColor="#333333"
+            android:layout_marginTop="12dp"
+            android:background="#F5F5F5"
+            android:padding="10dp"
+            android:textStyle="italic"
+            android:fontFamily="sans-serif" />
+
+        <TextView
+            android:id="@+id/purchaseNotes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Note: Customer requested home delivery"
+            android:textSize="12sp"
+            android:textColor="#757575"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            android:fontFamily="sans-serif" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

@@ -1,6 +1,5 @@
 package com.guruyuknow.hisabbook.Staff
 
-
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -10,12 +9,17 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.guruyuknow.hisabbook.R
 import com.guruyuknow.hisabbook.SupabaseManager
-import com.guruyuknow.hisabbook.User
 import com.guruyuknow.hisabbook.databinding.ActivityStaffBinding
+import io.github.jan.supabase.gotrue.auth
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -24,34 +28,47 @@ class StaffActivity : AppCompatActivity() {
     private lateinit var binding: ActivityStaffBinding
     private lateinit var staffAdapter: StaffAdapter
     private val staffList = mutableListOf<Staff>()
-    private var currentUser: User? = null
+    private var businessOwnerId: String? = null
 
     private val contactPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        if (isGranted) {
-            openContactPicker()
-        } else {
-            Toast.makeText(this, "Contact permission is required to add staff", Toast.LENGTH_SHORT).show()
-        }
+        if (isGranted) openContactPicker()
+        else Toast.makeText(this, "Contact permission is required to add staff", Toast.LENGTH_SHORT).show()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityStaffBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
 
         setupToolbar()
         setupRecyclerView()
         setupClickListeners()
-        loadCurrentUser()
+        setupDialogResultListener()
+
+        resolveBusinessOwnerIdAndLoad()
     }
 
     private fun setupToolbar() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Manage Staff"
+
+        // Ensure navigation icon aligns well
+        binding.toolbar.post {
+            for (i in 0 until binding.toolbar.childCount) {
+                val view = binding.toolbar.getChildAt(i)
+                if (view is androidx.appcompat.widget.AppCompatTextView) {
+                    view.isSingleLine = true
+                    view.ellipsize = null
+                    view.maxLines = 1
+                }
+            }
+        }
     }
+
 
     private fun setupRecyclerView() {
         staffAdapter = StaffAdapter(
@@ -60,7 +77,6 @@ class StaffActivity : AppCompatActivity() {
             onAttendanceClick = { staff -> markAttendance(staff) },
             onPermissionClick = { staff -> openStaffPermissions(staff) }
         )
-
         binding.recyclerViewStaff.apply {
             layoutManager = LinearLayoutManager(this@StaffActivity)
             adapter = staffAdapter
@@ -68,137 +84,168 @@ class StaffActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
-        binding.fabAddStaff.setOnClickListener {
-            checkContactPermissionAndProceed()
-        }
-
-        binding.btnAddStaff.setOnClickListener {
-            checkContactPermissionAndProceed()
-        }
+        val add = View.OnClickListener { checkContactPermissionAndProceed() }
+        binding.fabAddStaff.setOnClickListener(add)
+        binding.btnAddStaff.setOnClickListener(add)
 
         binding.chipAll.setOnClickListener { filterStaff("all") }
         binding.chipSalaryAdded.setOnClickListener { filterStaff("salary_added") }
         binding.chipPermissionGiven.setOnClickListener { filterStaff("permission_given") }
     }
 
-    private fun loadCurrentUser() {
-        lifecycleScope.launch {
-            try {
-                currentUser = SupabaseManager.getCurrentUser()
-                currentUser?.let { user ->
-                    user.id?.let { loadStaffData(it) }
+    private fun setupDialogResultListener() {
+        supportFragmentManager.setFragmentResultListener(
+            AttendanceDialogFragment.RESULT_KEY,
+            this
+        ) { _, bundle ->
+            if (bundle.getBoolean(AttendanceDialogFragment.RESULT_OK, false)) {
+                // Refresh today summary and list after marking attendance
+                businessOwnerId?.let { id ->
+                    loadStaffData(id) // cheap + also refreshes summary & total due
                 }
-            } catch (e: Exception) {
-                Toast.makeText(this@StaffActivity, "Error loading user data", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
+    private fun resolveBusinessOwnerIdAndLoad() {
+        val authUser = SupabaseManager.client.auth.currentUserOrNull()
+        businessOwnerId = authUser?.id
+        if (businessOwnerId == null) {
+            Toast.makeText(this, "Please login again", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+        loadStaffData(businessOwnerId!!)
+    }
+
+    private fun showLoading(show: Boolean) {
+        binding.progressBar.visibility = if (show) View.VISIBLE else View.GONE
+        binding.layoutContent.alpha = if (show) 0.5f else 1f
+        binding.layoutContent.isEnabled = !show
+    }
+
     private fun loadStaffData(businessOwnerId: String) {
+        showLoading(true)
         lifecycleScope.launch {
             try {
                 val result = SupabaseManager.getStaffByBusinessOwner(businessOwnerId)
                 if (result.isSuccess) {
-                    val staff = result.getOrNull() ?: emptyList()
+                    val staff = result.getOrNull().orEmpty()
                     staffList.clear()
                     staffList.addAll(staff)
                     staffAdapter.notifyDataSetChanged()
 
-                    updateUI(staff)
+                    updateEmptyState(staff.isEmpty())
+                    // In parallel: update today summary + total due
+                    updateTodayAttendanceSummary(businessOwnerId)
                     calculateTotalDue(staff)
+
                 } else {
                     val error = result.exceptionOrNull()?.message ?: "Unknown error"
                     Toast.makeText(this@StaffActivity, "Error loading staff: $error", Toast.LENGTH_SHORT).show()
-                    println("Staff loading error: $error")  // Add logging
-                    result.exceptionOrNull()?.printStackTrace()  // Print stack trace
+                    updateEmptyState(true)
                 }
             } catch (e: Exception) {
                 Toast.makeText(this@StaffActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                println("Staff loading exception: ${e.message}")  // Add logging
-                e.printStackTrace()  // Print stack trace
+                updateEmptyState(true)
+            } finally {
+                showLoading(false)
             }
         }
     }
 
-    private fun updateUI(staff: List<Staff>) {
-        if (staff.isEmpty()) {
-            binding.layoutEmpty.visibility = View.VISIBLE
-            binding.layoutContent.visibility = View.GONE
-        } else {
-            binding.layoutEmpty.visibility = View.GONE
-            binding.layoutContent.visibility = View.VISIBLE
-
-            // Update attendance summary for today
-            updateTodayAttendanceSummary()
+    private fun updateEmptyState(isEmpty: Boolean) {
+        binding.layoutEmpty.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        binding.layoutContent.visibility = if (isEmpty) View.GONE else View.VISIBLE
+        if (isEmpty) {
+            // Reset summary UI to zeros to avoid stale numbers
+            binding.tvPresentCount.text = "0"
+            binding.tvAbsentCount.text = "0"
+            binding.tvHalfDayCount.text = "0"
+            binding.tvTotalDue.text = getCurrency(0.0)
+            binding.tvStaffCount.text = getString(R.string.for_n_staff, 0)
         }
     }
 
-    private fun updateTodayAttendanceSummary() {
+    /** Present = PRESENT or LATE; Absent = ABSENT; Half Day = HALF_DAY */
+    private fun updateTodayAttendanceSummary(ownerId: String) {
         lifecycleScope.launch {
             try {
-                currentUser?.let { user ->
-                    val result = user.id?.let { SupabaseManager.getTodayAttendance(it) }
-                    if (result != null) {
-                        if (result.isSuccess) {
-                            val todayAttendance = result?.getOrNull() ?: emptyList()
-                            val presentCount = todayAttendance.count { it.status == AttendanceStatus.PRESENT }
-                            val absentCount = todayAttendance.count { it.status == AttendanceStatus.ABSENT }
-                            val halfDayCount = todayAttendance.count { it.status == AttendanceStatus.HALF_DAY }
+                val todayResult = SupabaseManager.getTodayAttendance(ownerId)
+                if (todayResult.isSuccess) {
+                    val today = todayResult.getOrNull().orEmpty()
+                    val present = today.count { it.status == AttendanceStatus.PRESENT || it.status == AttendanceStatus.LATE }
+                    val absent = today.count { it.status == AttendanceStatus.ABSENT }
+                    val half   = today.count { it.status == AttendanceStatus.HALF_DAY }
 
-                            binding.tvPresentCount.text = presentCount.toString()
-                            binding.tvAbsentCount.text = absentCount.toString()
-                            binding.tvHalfDayCount.text = halfDayCount.toString()
-                        }
-                    }
+                    binding.tvPresentCount.text = present.toString()
+                    binding.tvAbsentCount.text  = absent.toString()
+                    binding.tvHalfDayCount.text = half.toString()
+                } else {
+                    // reset to zero on error
+                    binding.tvPresentCount.text = "0"
+                    binding.tvAbsentCount.text = "0"
+                    binding.tvHalfDayCount.text = "0"
                 }
-            } catch (e: Exception) {
-                // Handle error silently
+            } catch (_: Exception) {
+                binding.tvPresentCount.text = "0"
+                binding.tvAbsentCount.text = "0"
+                binding.tvHalfDayCount.text = "0"
             }
         }
     }
 
+    /** Total due for current month:
+     *  - MONTHLY: salaryAmount
+     *  - DAILY: salaryAmount * (Present+Late + 0.5*HalfDay)
+     */
     private fun calculateTotalDue(staff: List<Staff>) {
         lifecycleScope.launch {
             try {
-                var totalDue = 0.0
                 val currentMonth = SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
 
-                staff.forEach { staffMember ->
-                    when (staffMember.salaryType) {
-                        SalaryType.MONTHLY -> totalDue += staffMember.salaryAmount
-                        SalaryType.DAILY -> {
-                            val attendanceResult = SupabaseManager.getAttendanceByStaffAndMonth(
-                                staffMember.id, currentMonth
-                            )
-                            if (attendanceResult.isSuccess) {
-                                val attendance = attendanceResult.getOrNull() ?: emptyList()
-                                val workingDays = attendance.count {
-                                    it.status == AttendanceStatus.PRESENT || it.status == AttendanceStatus.LATE
-                                } + (attendance.count { it.status == AttendanceStatus.HALF_DAY } * 0.5)
-                                totalDue += staffMember.salaryAmount * workingDays
+                // Run DAILY attendance fetches concurrently
+                val dailyJobs = staff.map { s ->
+                    async {
+                        when (s.salaryType) {
+                            SalaryType.MONTHLY -> s.salaryAmount
+                            SalaryType.DAILY -> {
+                                val res = SupabaseManager.getAttendanceByStaffAndMonth(s.id, currentMonth)
+                                if (res.isSuccess) {
+                                    val attendance = res.getOrNull().orEmpty()
+                                    val fullDays = attendance.count {
+                                        it.status == AttendanceStatus.PRESENT || it.status == AttendanceStatus.LATE
+                                    }
+                                    val halfDays = attendance.count { it.status == AttendanceStatus.HALF_DAY }
+                                    s.salaryAmount * (fullDays + (halfDays * 0.5))
+                                } else 0.0
                             }
                         }
                     }
                 }
 
-                binding.tvTotalDue.text = "₹${totalDue.toInt()}"
-                binding.tvStaffCount.text = "for ${staff.size} staff"
-            } catch (e: Exception) {
-                // Handle error
+                val totalDue = dailyJobs.awaitAll().sum()
+                binding.tvTotalDue.text = getCurrency(totalDue)
+                binding.tvStaffCount.text = getString(R.string.for_n_staff, staff.size)
+
+            } catch (_: Exception) {
+                binding.tvTotalDue.text = getCurrency(0.0)
+                binding.tvStaffCount.text = getString(R.string.for_n_staff, staff.size)
             }
         }
     }
 
+    private fun getCurrency(amount: Double): String {
+        val nf = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
+        // Ensure INR symbol format like ₹12,345.00 (you can trim decimals if you want)
+        return nf.format(amount)
+    }
+
     private fun checkContactPermissionAndProceed() {
         when {
-            ContextCompat.checkSelfPermission(
-                this, Manifest.permission.READ_CONTACTS
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                openContactPicker()
-            }
-            else -> {
-                contactPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
-            }
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS)
+                    == PackageManager.PERMISSION_GRANTED -> openContactPicker()
+            else -> contactPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
         }
     }
 
@@ -213,10 +260,13 @@ class StaffActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
+    // Prevent multiple dialogs: use tag guard
     private fun markAttendance(staff: Staff) {
-        // Show attendance marking dialog
-        AttendanceDialogFragment.newInstance(staff.id, staff.name)
-            .show(supportFragmentManager, "attendance_dialog")
+        val tag = "attendance_dialog"
+        if (supportFragmentManager.findFragmentByTag(tag) == null) {
+            AttendanceDialogFragment.newInstance(staff.id, staff.name)
+                .show(supportFragmentManager, tag)
+        }
     }
 
     private fun openStaffPermissions(staff: Staff) {
@@ -226,7 +276,6 @@ class StaffActivity : AppCompatActivity() {
     }
 
     private fun filterStaff(filter: String) {
-        // Implement filtering logic based on the filter type
         when (filter) {
             "all" -> {
                 binding.chipAll.isChecked = true
@@ -244,20 +293,21 @@ class StaffActivity : AppCompatActivity() {
                 binding.chipPermissionGiven.isChecked = true
             }
         }
-        // Apply filter to adapter
         staffAdapter.filter(filter)
     }
 
     override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
+        onBackPressedDispatcher.onBackPressed()
         return true
     }
 
     override fun onResume() {
         super.onResume()
-        // Refresh data when returning from other activities
-        currentUser?.let { user ->
-            user.id?.let { loadStaffData(it) }
+        // Re-resolve owner id (in case session changed) and refresh
+        val id = SupabaseManager.client.auth.currentUserOrNull()?.id
+        if (id != null) {
+            if (id != businessOwnerId) businessOwnerId = id
+            loadStaffData(id)
         }
     }
 }

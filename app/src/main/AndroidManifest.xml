@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
+    <!-- Network (required for Supabase/Google) -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- Keep only if your Staff flow truly needs it (remember: ask runtime permission) -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -15,6 +16,27 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.HisabBook"
         tools:targetApi="31">
+        <activity
+            android:name=".ShopActivity"
+            android:exported="false" />
+        <activity
+            android:name=".CustomerDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AddPurchaseActivity"
+            android:exported="false" />
+        <activity
+            android:name=".Shop.CustomerDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".Shop.AddPurchaseActivity"
+            android:exported="false" />
+        <activity
+            android:name=".Shop.ShopActivity"
+            android:exported="false" />
+        <activity
+            android:name=".Bills.BillsActivity"
+            android:exported="false" /> <!-- Other feature activities -->
         <activity
             android:name=".Staff.StaffPermissionsActivity"
             android:exported="false" />
@@ -35,7 +57,7 @@
             android:exported="false" />
         <activity
             android:name=".CashbookActivity"
-            android:exported="false" /> <!-- Splash Activity - Entry Point -->
+            android:exported="false" /> <!-- Splash / Router (Launcher) -->
         <activity
             android:name=".SplashActivity"
             android:exported="true"
@@ -45,14 +67,15 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity> <!-- Login Activity -->
+        </activity> <!-- Login (non-launcher) -->
         <activity
             android:name=".LoginActivity"
             android:exported="false"
-            android:theme="@style/Theme.HisabBook" /> <!-- Main Activity -->
+            android:theme="@style/Theme.HisabBook" /> <!-- Main (non-launcher). Optional: singleTask to avoid duplicates -->
         <activity
             android:name=".MainActivity"
             android:exported="false"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.HisabBook" />
     </application>
 

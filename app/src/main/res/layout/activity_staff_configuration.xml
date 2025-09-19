@@ -4,20 +4,31 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@android:color/white"
     tools:context=".Staff.StaffConfigurationActivity">
 
+    <!-- APP BAR (no extra paddings; fixed alignment) -->
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+        android:background="@color/dark_violet"
+        android:elevation="4dp"
+        android:fitsSystemWindows="true"
+        android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
-            app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
-
+            android:background="@color/dark_violet"
+            android:paddingTop="0dp"
+            android:paddingBottom="0dp"
+            app:contentInsetStartWithNavigation="0dp"
+            app:navigationIconTint="@android:color/white"
+            app:popupTheme="@style/ThemeOverlay.MaterialComponents.Light"
+            app:title="Staff and Permissions"
+            app:titleTextColor="@android:color/white" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <ScrollView
@@ -29,24 +40,28 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="20dp">
 
-            <!-- Staff Section -->
+            <!-- STAFF -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="STAFF"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:textColor="@android:color/darker_gray"
+                android:letterSpacing="0.05"
                 android:layout_marginBottom="16dp" />
 
-            <!-- Contact Info Layout -->
+            <!-- Contact Info -->
             <LinearLayout
                 android:id="@+id/layout_contact_info"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="24dp"
+                android:background="@drawable/rounded_background"
+                android:padding="16dp"
+                android:elevation="2dp">
 
                 <FrameLayout
                     android:layout_width="56dp"
@@ -62,7 +77,6 @@
                         android:textColor="@android:color/white"
                         android:textSize="20sp"
                         android:textStyle="bold" />
-
                 </FrameLayout>
 
                 <LinearLayout
@@ -89,8 +103,7 @@
                         android:text="6205330438"
                         android:textSize="14sp"
                         android:textColor="@android:color/darker_gray"
-                        android:layout_marginTop="2dp" />
-
+                        android:layout_marginTop="4dp" />
                 </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
@@ -99,12 +112,12 @@
                     android:layout_height="wrap_content"
                     android:text="Change"
                     android:textSize="12sp"
-                    style="@style/Widget.Material3.Button.TextButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    app:strokeColor="@color/colorPrimary"
                     android:layout_gravity="center_vertical" />
-
             </LinearLayout>
 
-            <!-- Manual Entry Layout -->
+            <!-- Manual Entry -->
             <LinearLayout
                 android:id="@+id/layout_manual_entry"
                 android:layout_width="match_parent"
@@ -125,7 +138,6 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textPersonName" />
-
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -139,28 +151,27 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="phone" />
-
                 </com.google.android.material.textfield.TextInputLayout>
-
             </LinearLayout>
 
-            <!-- Manage Salary & Permissions Section -->
+            <!-- Manage Salary & Permissions -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="MANAGE SALARY &amp; PERMISSIONS"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:textColor="@android:color/darker_gray"
+                android:letterSpacing="0.05"
                 android:layout_marginBottom="16dp" />
 
-            <!-- Attendance & Salary Toggle -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:padding="16dp"
                 android:background="@drawable/rounded_background"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="24dp"
+                android:elevation="2dp">
 
                 <ImageView
                     android:layout_width="32dp"
@@ -190,8 +201,7 @@
                         android:text="Manage attendance &amp; salary"
                         android:textSize="14sp"
                         android:textColor="@android:color/darker_gray"
-                        android:layout_marginTop="2dp" />
-
+                        android:layout_marginTop="4dp" />
                 </LinearLayout>
 
                 <com.google.android.material.materialswitch.MaterialSwitch
@@ -200,16 +210,16 @@
                     android:layout_height="wrap_content"
                     android:checked="true"
                     android:layout_gravity="center_vertical" />
-
             </LinearLayout>
 
-            <!-- Salary Calculation Start Date -->
+            <!-- Salary calc start date -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="SALARY CALCULATION START DATE"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:textColor="@android:color/darker_gray"
+                android:letterSpacing="0.05"
                 android:layout_marginBottom="8dp" />
 
             <LinearLayout
@@ -219,7 +229,8 @@
                 android:orientation="horizontal"
                 android:padding="16dp"
                 android:background="@drawable/rounded_background"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="24dp"
+                android:elevation="2dp">
 
                 <ImageView
                     android:layout_width="24dp"
@@ -243,123 +254,121 @@
                     android:layout_height="24dp"
                     android:src="@drawable/ic_arrow_forward"
                     android:layout_gravity="center_vertical" />
-
             </LinearLayout>
 
-            <!-- Salary Type -->
+            <!-- Salary type -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="SALARY TYPE"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:textColor="@android:color/darker_gray"
+                android:letterSpacing="0.05"
                 android:layout_marginBottom="16dp" />
 
-            <!-- Monthly Option -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_monthly"
+            <RadioGroup
+                android:id="@+id/radio_group_salary_type"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/colorPrimary"
-                app:strokeWidth="2dp">
+                android:layout_marginBottom="24dp">
 
-                <LinearLayout
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_monthly"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="16dp">
-
-                    <RadioButton
-                        android:id="@+id/radio_monthly"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:checked="true"
-                        android:layout_gravity="center_vertical" />
+                    android:layout_marginBottom="12dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@android:color/darker_gray"
+                    app:strokeWidth="1dp">
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="12dp">
+                        android:orientation="horizontal"
+                        android:padding="16dp">
 
-                        <TextView
+                        <RadioButton
+                            android:id="@+id/radio_monthly"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Monthly"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            android:textColor="@android:color/black" />
+                            android:layout_gravity="center_vertical" />
 
-                        <TextView
-                            android:id="@+id/tv_salary_type_description"
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="Mi Reina gets monthly salary"
-                            android:textSize="14sp"
-                            android:textColor="@android:color/darker_gray"
-                            android:layout_marginTop="2dp" />
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_marginStart="12dp">
 
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Monthly"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="@android:color/black" />
+
+                            <TextView
+                                android:id="@+id/tv_salary_type_description"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Mi Reina gets monthly salary"
+                                android:textSize="14sp"
+                                android:textColor="@android:color/darker_gray"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
                     </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Daily Option -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_daily"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@android:color/darker_gray"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_daily"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="16dp">
-
-                    <RadioButton
-                        android:id="@+id/radio_daily"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical" />
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@android:color/darker_gray"
+                    app:strokeWidth="1dp">
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="12dp">
+                        android:orientation="horizontal"
+                        android:padding="16dp">
 
-                        <TextView
+                        <RadioButton
+                            android:id="@+id/radio_daily"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Daily"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            android:textColor="@android:color/black" />
+                            android:layout_gravity="center_vertical" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="Mi Reina gets daily salary"
-                            android:textSize="14sp"
-                            android:textColor="@android:color/darker_gray"
-                            android:layout_marginTop="2dp" />
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_marginStart="12dp">
 
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Daily"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="@android:color/black" />
+
+                            <TextView
+                                android:id="@+id/tv_daily_description"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Mi Reina gets daily salary"
+                                android:textSize="14sp"
+                                android:textColor="@android:color/darker_gray"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
                     </LinearLayout>
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
+                </com.google.android.material.card.MaterialCardView>
+            </RadioGroup>
 
             <!-- Salary Amount -->
             <com.google.android.material.textfield.TextInputLayout
@@ -376,17 +385,17 @@
                     android:layout_height="wrap_content"
                     android:inputType="numberDecimal"
                     android:text="500" />
-
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Permissions Section -->
+            <!-- Permissions -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:padding="16dp"
                 android:background="@drawable/rounded_background"
-                android:layout_marginBottom="32dp">
+                android:layout_marginBottom="32dp"
+                android:elevation="2dp">
 
                 <ImageView
                     android:layout_width="32dp"
@@ -416,8 +425,7 @@
                         android:text="Permissions for Mi Reina to manage your business on Khatabook"
                         android:textSize="14sp"
                         android:textColor="@android:color/darker_gray"
-                        android:layout_marginTop="2dp" />
-
+                        android:layout_marginTop="4dp" />
                 </LinearLayout>
 
                 <com.google.android.material.materialswitch.MaterialSwitch
@@ -425,10 +433,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_vertical" />
-
             </LinearLayout>
 
-            <!-- Progress Bar -->
             <ProgressBar
                 android:id="@+id/progress_bar"
                 android:layout_width="wrap_content"
@@ -436,12 +442,10 @@
                 android:layout_gravity="center"
                 android:visibility="gone"
                 android:layout_marginBottom="16dp" />
-
         </LinearLayout>
-
     </ScrollView>
 
-    <!-- Save Button -->
+    <!-- SAVE -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_save"
         android:layout_width="match_parent"
@@ -450,7 +454,7 @@
         android:textColor="@android:color/white"
         app:backgroundTint="@color/colorPrimary"
         android:layout_gravity="bottom"
-        android:layout_margin="16dp"
-        app:cornerRadius="8dp" />
-
+        android:layout_margin="20dp"
+        app:cornerRadius="12dp"
+        app:rippleColor="@color/colorPrimaryDark" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
