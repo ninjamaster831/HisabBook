@@ -96,6 +96,10 @@ class ProfileFragment : Fragment() {
                 val intent = Intent(requireContext(), ShopActivity::class.java)
                 startActivity(intent)
             }
+            binding.featureCardsGrid.getChildAt(4).setOnClickListener {
+                val intent = Intent(requireContext(), LoanTrackerActivity::class.java)
+                startActivity(intent)
+            }
             settingsLayout.setOnClickListener {
                 // TODO: Navigate to settings
             }

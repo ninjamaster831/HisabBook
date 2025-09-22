@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cardLoan"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="8dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="6dp"
+    app:cardBackgroundColor="@android:color/white"
+    app:strokeColor="#E0E0E0"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- HEADER: left info + right actions (amount, paid, delete) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Left: Name + phone -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvFriendName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#333333"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="John Doe" />
+
+                <TextView
+                    android:id="@+id/tvPhoneNumber"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="#666666"
+                    android:textSize="12sp"
+                    tools:text="+91 98765 43210" />
+            </LinearLayout>
+
+            <!-- Right pack: amount → paid → delete -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvAmount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:textColor="#8E67E8"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    tools:text="₹5,000" />
+
+                <TextView
+                    android:id="@+id/tvPaidStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_paid_status"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:text="PAID ✓"
+                    android:textColor="@android:color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
+                <!-- Top-right delete as compact icon -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDeleteTop"
+                    style="@style/Widget.Material3.Button.Icon"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:contentDescription="Delete"
+                    app:cornerRadius="18dp"
+                    app:icon="@drawable/ic_delete"
+                    app:iconSize="16dp"
+                    app:iconTint="#F44336"
+                    app:backgroundTint="#FFF1F1"
+                    app:rippleColor="#1AF44336"
+                    app:strokeColor="#F44336"
+                    app:strokeWidth="1dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Accent divider -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="3dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/accent_line" />
+
+        <!-- Date + reminder + notes -->
+        <TextView
+            android:id="@+id/tvDateCreated"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#666666"
+            android:textSize="12sp"
+            tools:text="Loaned on: 15 Nov 2024" />
+
+        <TextView
+            android:id="@+id/tvReminderDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="#8E67E8"
+            android:textSize="12sp"
+            android:visibility="gone"
+            tools:text="Reminder: 20/11/2024 10:00 AM" />
+
+        <TextView
+            android:id="@+id/tvNotes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_notes"
+            android:padding="8dp"
+            android:textColor="#666666"
+            android:textSize="12sp"
+            android:visibility="gone"
+            tools:text="Note: For business expenses"
+            tools:visibility="visible" />
+
+        <!-- Bottom actions (no delete here) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSendReminder"
+                style="@style/Widget.Material3.Button.OutlinedButton.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="WhatsApp"
+                android:textSize="9sp"
+                android:textColor="#8E67E8"
+                app:cornerRadius="12dp"
+                app:icon="@drawable/ic_whatsapp"
+                app:iconSize="10dp"
+                app:iconTint="#8E67E8"
+                app:strokeColor="#8E67E8" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEdit"
+                style="@style/Widget.Material3.Button.OutlinedButton.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="8dp"
+                android:text="Edit"
+                android:textSize="10sp"
+                android:textColor="#8E67E8"
+                app:cornerRadius="12dp"
+                app:icon="@drawable/ic_edit"
+                app:iconSize="10dp"
+                app:iconTint="#8E67E8"
+                app:strokeColor="#8E67E8" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMarkPaid"
+                style="@style/Widget.Material3.Button.OutlinedButton.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="8dp"
+                android:text="Mark Paid"
+                android:textSize="10sp"
+                android:textColor="#4CAF50"
+                app:cornerRadius="12dp"
+                app:icon="@drawable/ic_check_circle"
+                app:iconSize="10dp"
+                app:iconTint="#4CAF50"
+                app:strokeColor="#4CAF50" />
+        </LinearLayout>
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
