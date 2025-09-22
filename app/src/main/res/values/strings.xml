@@ -15,9 +15,23 @@
     <string name="add">Add</string>
     <string name="for_n_staff">for %1$d staff</string>
 
-    <string name="staff_added_successfully">Staff added successfully</string>
-    <string name="error_loading_staff">Error loading staff data</string>
     <string name="contact_permission_required">Contact permission is required to add staff</string>
-    <string name="attendance_marked_successfully">Attendance marked successfully</string>
     <string name="permissions_updated_successfully">Permissions updated successfully</string>
+
+
+
+    <string name="mark_attendance">Mark Attendance</string>
+    <string name="present">Present</string>
+    <string name="absent">Absent</string>
+    <string name="half_day">Half Day</string>
+    <string name="late">Late</string>
+
+    <!-- Staff Management -->
+    <string name="staff_added_successfully">Staff added successfully</string>
+    <string name="attendance_marked_successfully">Attendance marked successfully</string>
+    <string name="permissions_updated">Permissions updated successfully</string>
+    <string name="error_loading_staff">Error loading staff data</string>
+    <string name="error_marking_attendance">Error marking attendance</string>
+    <string name="no_staff_found">No staff members found</string>
+    <string name="add_your_first_staff">Add your first staff member to get started</string>
 </resources>

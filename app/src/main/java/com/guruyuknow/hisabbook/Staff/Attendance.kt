@@ -22,3 +22,7 @@ data class Attendance @RequiresApi(Build.VERSION_CODES.O) constructor(
 enum class AttendanceStatus {
     PRESENT, ABSENT, HALF_DAY, LATE
 }
+@RequiresApi(Build.VERSION_CODES.O)
+private fun getCurrentTimestamp(): String {
+    return java.time.Instant.now().toString()
+}
