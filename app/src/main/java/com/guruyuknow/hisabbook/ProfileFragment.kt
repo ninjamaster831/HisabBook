@@ -29,6 +29,7 @@ class ProfileFragment : Fragment() {
 
     private var currentUser: User? = null
     private var selectedImageUri: Uri? = null
+    private var currentEditDialog: AlertDialog? = null
 
     // Image picker launcher
     private val imagePickerLauncher = registerForActivityResult(
@@ -47,8 +48,6 @@ class ProfileFragment : Fragment() {
             }
         }
     }
-
-    private var currentEditDialog: AlertDialog? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -80,38 +79,36 @@ class ProfileFragment : Fragment() {
             editButton.setOnClickListener {
                 showEditProfileDialog()
             }
-            binding.featureCardsGrid.getChildAt(2).setOnClickListener {
+            featureCardsGrid.getChildAt(2)?.setOnClickListener {
                 val intent = Intent(requireContext(), CashbookActivity::class.java)
                 startActivity(intent)
             }
-            binding.featureCardsGrid.getChildAt(1).setOnClickListener {
+            featureCardsGrid.getChildAt(1)?.setOnClickListener {
                 val intent = Intent(requireContext(), StaffActivity::class.java)
                 startActivity(intent)
             }
-            binding.featureCardsGrid.getChildAt(0).setOnClickListener {
+            featureCardsGrid.getChildAt(0)?.setOnClickListener {
                 val intent = Intent(requireContext(), BillsActivity::class.java)
                 startActivity(intent)
             }
-            binding.featureCardsGrid.getChildAt(3).setOnClickListener {
+            featureCardsGrid.getChildAt(3)?.setOnClickListener {
                 val intent = Intent(requireContext(), ShopActivity::class.java)
                 startActivity(intent)
             }
-            binding.featureCardsGrid.getChildAt(4).setOnClickListener {
+            featureCardsGrid.getChildAt(4)?.setOnClickListener {
                 val intent = Intent(requireContext(), LoanTrackerActivity::class.java)
                 startActivity(intent)
             }
             settingsLayout.setOnClickListener {
-                // TODO: Navigate to settings
+                val intent = Intent(requireContext(), SettingsActivity::class.java)
+                startActivity(intent)
             }
-
             helpSupportLayout.setOnClickListener {
                 // TODO: Navigate to help & support
             }
-
             aboutUsLayout.setOnClickListener {
                 // TODO: Navigate to about us
             }
-
             logoutButton.setOnClickListener {
                 handleLogout()
             }
@@ -138,30 +135,44 @@ class ProfileFragment : Fragment() {
         }
     }
 
+    /**
+     * Converts a stored path (e.g., "avatars/uid.png") to a full public URL.
+     * If it's already a full URL, returns it as-is.
+     * NOTE: Ensure SupabaseManager.getPublicFileUrl(bucket, path) exists and uses:
+     * supabase.storage.from(bucket).getPublicUrl(path)
+     */
+    private fun resolveAvatarUrl(raw: String?): String? {
+        if (raw.isNullOrBlank()) return null
+        return if (raw.startsWith("http", ignoreCase = true)) raw
+        else SupabaseManager.getPublicFileUrl("avatars", raw)
+    }
+
     private fun updateUI(user: User) {
         binding.apply {
             businessNameText.text = user.fullName ?: user.email ?: "My Business"
 
-            // Load profile image or show initials
-            if (!user.avatarUrl.isNullOrEmpty()) {
+            val avatarUrl = resolveAvatarUrl(user.avatarUrl)
+
+            if (!avatarUrl.isNullOrBlank()) {
                 profileInitials.visibility = View.GONE
                 profileImage.visibility = View.VISIBLE
+
                 Glide.with(this@ProfileFragment)
-                    .load(user.avatarUrl)
+                    .load(avatarUrl)
                     .transform(CircleCrop())
+                    .placeholder(R.drawable.ic_profile) // optional
+                    .error(R.drawable.ic_edit)       // optional
                     .into(profileImage)
             } else {
                 profileImage.visibility = View.GONE
                 profileInitials.visibility = View.VISIBLE
 
-                val initials = if (!user.fullName.isNullOrEmpty()) {
-                    user.fullName.split(" ").take(2).joinToString("") {
-                        it.first().toString().uppercase()
-                    }
-                } else if (!user.email.isNullOrEmpty()) {
-                    user.email.first().toString().uppercase()
-                } else {
-                    "MB"
+                val initials = when {
+                    !user.fullName.isNullOrEmpty() ->
+                        user.fullName.split(" ").take(2).joinToString("") { it.first().toString().uppercase() }
+                    !user.email.isNullOrEmpty() ->
+                        user.email.first().toString().uppercase()
+                    else -> "MB"
                 }
                 profileInitials.text = initials
             }
@@ -177,6 +188,7 @@ class ProfileFragment : Fragment() {
             Toast.makeText(requireContext(), "Loading user data, please try again", Toast.LENGTH_SHORT).show()
             return
         }
+
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_edit_profile, null)
 
         val nameInput = dialogView.findViewById<TextInputEditText>(R.id.nameInput)
@@ -188,24 +200,23 @@ class ProfileFragment : Fragment() {
         nameInput.setText(currentUser?.fullName ?: "")
 
         // Load current profile image or initials
-        if (!currentUser?.avatarUrl.isNullOrEmpty()) {
+        val avatarUrl = resolveAvatarUrl(currentUser?.avatarUrl)
+        if (!avatarUrl.isNullOrBlank()) {
             profileImageView.visibility = View.VISIBLE
             profileInitialsView.visibility = View.GONE
             Glide.with(this)
-                .load(currentUser?.avatarUrl)
+                .load(avatarUrl)
                 .transform(CircleCrop())
                 .into(profileImageView)
         } else {
             profileImageView.visibility = View.GONE
             profileInitialsView.visibility = View.VISIBLE
-            val initials = if (!currentUser?.fullName.isNullOrEmpty()) {
-                currentUser?.fullName?.split(" ")?.take(2)?.joinToString("") {
-                    it.first().toString().uppercase()
-                } ?: "MB"
-            } else if (!currentUser?.email.isNullOrEmpty()) {
-                currentUser?.email?.first()?.toString()?.uppercase() ?: "MB"
-            } else {
-                "MB"
+            val initials = when {
+                !currentUser?.fullName.isNullOrEmpty() ->
+                    currentUser!!.fullName!!.split(" ").take(2).joinToString("") { it.first().toString().uppercase() }
+                !currentUser?.email.isNullOrEmpty() ->
+                    currentUser!!.email!!.first().toString().uppercase()
+                else -> "MB"
             }
             profileInitialsView.text = initials
         }
@@ -252,7 +263,10 @@ class ProfileFragment : Fragment() {
                     println("Update result success: ${result.isSuccess}")
 
                     if (result.isSuccess) {
-                        currentUser = result.getOrNull()
+                        // Ensure avatarUrl is a full URL before updating UI
+                        val updated = result.getOrNull()
+                        val fixed = updated?.copy(avatarUrl = resolveAvatarUrl(updated.avatarUrl))
+                        currentUser = fixed ?: updated
                         println("New current user: $currentUser")
                         currentUser?.let { updateUI(it) }
                         Toast.makeText(requireContext(), "Profile updated successfully", Toast.LENGTH_SHORT).show()
@@ -280,7 +294,7 @@ class ProfileFragment : Fragment() {
 
     private fun updateProfileStrength(user: User) {
         var completionScore = 0
-        var totalFields = 4
+        val totalFields = 4
 
         if (!user.email.isNullOrEmpty()) completionScore++
         if (!user.fullName.isNullOrEmpty()) completionScore++

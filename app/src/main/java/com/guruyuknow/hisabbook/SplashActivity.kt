@@ -4,24 +4,46 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.widget.ImageView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
 class SplashActivity : AppCompatActivity() {
 
-    // Adjust if you want a longer logo reveal
-    private val splashTimeOut: Long = 1500 // ms
+    private val splashTimeOut: Long = 2000 // Slightly longer for animations
+    private val animationDuration: Long = 1000 // Animation duration in ms
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
 
+        // Find views
+        val logoImageView = findViewById<ImageView>(R.id.logoImageView)
+        val taglineTextView = findViewById<TextView>(R.id.taglineTextView)
+
+        // Set up fade-in animations
+        logoImageView.animate()
+            .alpha(1f)
+            .setDuration(animationDuration)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .start()
+
+
+        taglineTextView.animate()
+            .alpha(1f)
+            .setDuration(animationDuration)
+            .setStartDelay(400)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .start()
+
+        // Route after splash timeout
         Handler(Looper.getMainLooper()).postDelayed({
             routeFromLocalSession()
         }, splashTimeOut)
     }
 
     private fun routeFromLocalSession() {
-        // OFFLINE-FIRST: do not hit network or Supabase here
         val isLoggedIn = SessionManager.isUserLoggedIn(this)
         val isValid = SessionManager.isSessionValid(this)
 
@@ -31,7 +53,6 @@ class SplashActivity : AppCompatActivity() {
             Intent(this, LoginActivity::class.java)
         }
 
-        // Make Splash a one-shot router
         next.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(next)
         finish()

@@ -4,12 +4,12 @@ import android.app.DatePickerDialog
 import android.os.Build
 import android.os.Bundle
 import android.view.View
-import android.widget.RadioGroup
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.guruyuknow.hisabbook.R
 import com.guruyuknow.hisabbook.SupabaseManager
 import com.guruyuknow.hisabbook.User
 import com.guruyuknow.hisabbook.databinding.ActivityStaffConfigurationBinding
@@ -18,16 +18,16 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import com.guruyuknow.hisabbook.R
+
 
 class StaffConfigurationActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityStaffConfigurationBinding
     private var currentUser: User? = null
+
     private var selectedDate: String = ""
     private var selectedSalaryType: SalaryType = SalaryType.MONTHLY
 
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityStaffConfigurationBinding.inflate(layoutInflater)
@@ -44,77 +44,108 @@ class StaffConfigurationActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Staff and Permissions"
+        binding.toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
     }
 
     private fun setupUI() {
-        // Set default date to today
-        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        val displayDate = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(Date())
-        selectedDate = today
-        binding.tvSalaryStartDate.text = displayDate
+        // Default date → today
+        val today = Date()
+        selectedDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(today)
+        binding.tvSalaryStartDate.text =
+            SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(today)
 
-        // Set default salary type with fallback colors
-        binding.radioGroupSalaryType.check(binding.radioMonthly.id)
+        // Default salary type
         selectedSalaryType = SalaryType.MONTHLY
-        updateSalaryTypeUI(SalaryType.MONTHLY)
+        updateSalaryTypeSelection()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun setupClickListeners() {
-        binding.layoutSalaryStartDate.setOnClickListener {
-            showDatePicker()
-        }
+        binding.layoutSalaryStartDate.setOnClickListener { showDatePicker() }
 
-        binding.radioGroupSalaryType.setOnCheckedChangeListener { _, checkedId ->
-            when (checkedId) {
-                binding.radioMonthly.id -> {
-                    selectedSalaryType = SalaryType.MONTHLY
-                    updateSalaryTypeUI(SalaryType.MONTHLY)
-                }
-                binding.radioDaily.id -> {
-                    selectedSalaryType = SalaryType.DAILY
-                    updateSalaryTypeUI(SalaryType.DAILY)
-                }
+        // Card clicks
+        binding.cardMonthly.setOnClickListener {
+            if (selectedSalaryType != SalaryType.MONTHLY) {
+                selectedSalaryType = SalaryType.MONTHLY
+                updateSalaryTypeSelection()
+            }
+        }
+        binding.cardDaily.setOnClickListener {
+            if (selectedSalaryType != SalaryType.DAILY) {
+                selectedSalaryType = SalaryType.DAILY
+                updateSalaryTypeSelection()
             }
         }
 
-        binding.switchAttendanceSalary.setOnCheckedChangeListener { _, isChecked ->
-            // Handle attendance & salary permission toggle
+        // Radio clicks (no RadioGroup in your XML)
+        binding.radioMonthly.setOnClickListener {
+            if (selectedSalaryType != SalaryType.MONTHLY) {
+                selectedSalaryType = SalaryType.MONTHLY
+                updateSalaryTypeSelection()
+            }
+        }
+        binding.radioDaily.setOnClickListener {
+            if (selectedSalaryType != SalaryType.DAILY) {
+                selectedSalaryType = SalaryType.DAILY
+                updateSalaryTypeSelection()
+            }
         }
 
-        binding.switchPermissions.setOnCheckedChangeListener { _, isChecked ->
-            // Handle business permissions toggle
+        binding.btnChange.setOnClickListener { showManualEntryFields() }
+
+        binding.switchAttendanceSalary.setOnCheckedChangeListener { _, _ ->
+            // attendance/salary permission toggled
+        }
+        binding.switchPermissions.setOnCheckedChangeListener { _, _ ->
+            // business permission toggled
         }
 
-        binding.btnSave.setOnClickListener {
-            saveStaffConfiguration()
-        }
+        binding.btnSave.setOnClickListener { saveStaffConfiguration() }
     }
 
-    private fun updateSalaryTypeUI(salaryType: SalaryType) {
-        val contactName = getContactName()
-        val primaryColor = try { ContextCompat.getColor(this, R.color.colorPrimary) } catch (e: Exception) { -0x9e0000 } // Fallback to #6200EE
-        val grayColor = try { ContextCompat.getColor(this, android.R.color.darker_gray) } catch (e: Exception) { -0x222222 } // Fallback to #222222
-        when (salaryType) {
+    private fun updateSalaryTypeSelection() {
+        val contactName = getContactName().ifEmpty { "Staff member" }
+
+        // Palette from your drawables/colors
+        val primary = safeColor(R.color.hisab_green, android.R.color.holo_green_dark)
+        val selectedBg = safeColor(R.color.hisab_green_light, android.R.color.darker_gray)
+        val unselectedBg = ContextCompat.getColor(this, android.R.color.white)
+        val neutralStroke = ContextCompat.getColor(this, android.R.color.darker_gray)
+
+        when (selectedSalaryType) {
             SalaryType.MONTHLY -> {
                 binding.radioMonthly.isChecked = true
                 binding.radioDaily.isChecked = false
-                binding.cardMonthly.strokeWidth = 2
-                binding.cardMonthly.strokeColor = primaryColor
+
+                binding.cardMonthly.strokeWidth = 3
+                binding.cardMonthly.strokeColor = primary
+                binding.cardMonthly.setCardBackgroundColor(selectedBg)
+
                 binding.cardDaily.strokeWidth = 1
-                binding.cardDaily.strokeColor = grayColor
+                binding.cardDaily.strokeColor = neutralStroke
+                binding.cardDaily.setCardBackgroundColor(unselectedBg)
+
                 binding.tvSalaryTypeDescription.text = "$contactName gets monthly salary"
                 binding.tvDailyDescription.text = "$contactName gets daily salary"
+
+                binding.tilSalaryAmount.hint = "Monthly Salary Amount"
             }
+
             SalaryType.DAILY -> {
                 binding.radioDaily.isChecked = true
                 binding.radioMonthly.isChecked = false
-                binding.cardDaily.strokeWidth = 2
-                binding.cardDaily.strokeColor = primaryColor
+
+                binding.cardDaily.strokeWidth = 3
+                binding.cardDaily.strokeColor = primary
+                binding.cardDaily.setCardBackgroundColor(selectedBg)
+
                 binding.cardMonthly.strokeWidth = 1
-                binding.cardMonthly.strokeColor = grayColor
+                binding.cardMonthly.strokeColor = neutralStroke
+                binding.cardMonthly.setCardBackgroundColor(unselectedBg)
+
                 binding.tvSalaryTypeDescription.text = "$contactName gets monthly salary"
                 binding.tvDailyDescription.text = "$contactName gets daily salary"
+
+                binding.tilSalaryAmount.hint = "Daily Salary Amount"
             }
         }
     }
@@ -124,7 +155,11 @@ class StaffConfigurationActivity : AppCompatActivity() {
             try {
                 currentUser = SupabaseManager.getCurrentUser()
             } catch (e: Exception) {
-                Toast.makeText(this@StaffConfigurationActivity, "Error loading user data", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@StaffConfigurationActivity,
+                    "Error loading user data",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
@@ -132,80 +167,114 @@ class StaffConfigurationActivity : AppCompatActivity() {
     private fun populateContactData() {
         val contactName = intent.getStringExtra("contact_name")
         val contactPhone = intent.getStringExtra("contact_phone")
-        val contactEmail = intent.getStringExtra("contact_email")
+        val contactEmail = intent.getStringExtra("contact_email") // kept if you need it later
 
-        contactName?.let {
-            binding.tvStaffName.text = it
-            binding.tvSalaryTypeDescription.text = "$it gets monthly salary"
-            binding.tvDailyDescription.text = "$it gets daily salary"
+        if (!contactName.isNullOrEmpty()) {
+            binding.layoutContactInfo.visibility = View.VISIBLE
+            binding.layoutManualEntry.visibility = View.GONE
 
-            // Set initials
-            val initials = it.split(" ").take(2).joinToString("") { word ->
-                word.first().toString().uppercase()
-            }
+            binding.tvStaffName.text = contactName
+
+            val initials = contactName
+                .split(" ")
+                .filter { it.isNotEmpty() }
+                .take(2)
+                .joinToString("") { it.first().uppercaseChar().toString() }
             binding.tvStaffInitials.text = initials
-        }
-
-        contactPhone?.let {
-            binding.tvStaffPhone.text = it
-        }
-
-        if (contactName == null) {
+        } else {
             showManualEntryFields()
         }
+
+        if (!contactPhone.isNullOrEmpty()) {
+            binding.tvStaffPhone.text = contactPhone
+        }
+
+        updateSalaryTypeSelection()
+        updatePermissionDescriptions()
+    }
+
+    private fun updatePermissionDescriptions() {
+        val contactName = getContactName().ifEmpty { "Staff member" }
+        binding.tvPermissionDescription.text =
+            "Permissions for $contactName to manage your business on HisabBook"
     }
 
     private fun showManualEntryFields() {
         binding.layoutManualEntry.visibility = View.VISIBLE
         binding.layoutContactInfo.visibility = View.GONE
+        binding.btnChange.visibility = View.GONE
+
+        updateSalaryTypeSelection()
+        updatePermissionDescriptions()
     }
 
     private fun showDatePicker() {
         val calendar = Calendar.getInstance()
-        val datePickerDialog = DatePickerDialog(
+
+        if (selectedDate.isNotEmpty()) {
+            try {
+                val df = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                df.parse(selectedDate)?.let { calendar.time = it }
+            } catch (_: Exception) { /* ignore */ }
+        }
+
+        val dlg = DatePickerDialog(
             this,
-            { _, year, month, dayOfMonth ->
-                calendar.set(year, month, dayOfMonth)
+            R.style.DatePickerTheme, // keep if you have it; else replace with android.R.style.Theme_DeviceDefault_Dialog
+            { _, year, month, day ->
+                calendar.set(year, month, day)
                 selectedDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.time)
-                val displayDate = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(calendar.time)
-                binding.tvSalaryStartDate.text = displayDate
+                val display = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(calendar.time)
+                binding.tvSalaryStartDate.text = display
             },
             calendar.get(Calendar.YEAR),
             calendar.get(Calendar.MONTH),
             calendar.get(Calendar.DAY_OF_MONTH)
         )
-        datePickerDialog.show()
+        dlg.show()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun saveStaffConfiguration() {
-        if (currentUser == null) {
+        val user = currentUser
+        if (user == null) {
             Toast.makeText(this, "User data not loaded", Toast.LENGTH_SHORT).show()
             return
         }
 
         val name = getContactName()
         val phone = getContactPhone()
-        val salaryAmount = binding.etSalaryAmount.text.toString().toDoubleOrNull()
+        val salaryAmount = binding.etSalaryAmount.text?.toString()?.trim()?.toDoubleOrNull()
 
+        // Validation
         if (name.isEmpty()) {
+            if (binding.layoutManualEntry.visibility == View.VISIBLE) {
+                binding.etManualName.error = "Please enter staff name"
+                binding.etManualName.requestFocus()
+            }
             Toast.makeText(this, "Please enter staff name", Toast.LENGTH_SHORT).show()
             return
         }
 
         if (phone.isEmpty()) {
+            if (binding.layoutManualEntry.visibility == View.VISIBLE) {
+                binding.etManualPhone.error = "Please enter phone number"
+                binding.etManualPhone.requestFocus()
+            }
             Toast.makeText(this, "Please enter phone number", Toast.LENGTH_SHORT).show()
             return
         }
 
         if (salaryAmount == null || salaryAmount <= 0) {
+            binding.etSalaryAmount.error = "Please enter valid salary amount"
+            binding.etSalaryAmount.requestFocus()
             Toast.makeText(this, "Please enter valid salary amount", Toast.LENGTH_SHORT).show()
             return
         }
 
-        val staff = currentUser!!.id?.let {
+        // Build your Staff object (adjust package/class as per your project)
+        val staff = user.id?.let { ownerId ->
             Staff(
-                businessOwnerId = it,
+                businessOwnerId = ownerId,
                 name = name,
                 phoneNumber = phone,
                 email = intent.getStringExtra("contact_email"),
@@ -216,44 +285,49 @@ class StaffConfigurationActivity : AppCompatActivity() {
                 hasSalaryPermission = binding.switchAttendanceSalary.isChecked,
                 hasBusinessPermission = binding.switchPermissions.isChecked
             )
+        } ?: run {
+            Toast.makeText(this, "User id missing", Toast.LENGTH_SHORT).show()
+            return
         }
 
-        binding.btnSave.isEnabled = false
-        binding.progressBar.visibility = View.VISIBLE
+        // Loading UI
+        setSaving(true)
 
         lifecycleScope.launch {
             try {
-                val result = staff?.let { SupabaseManager.addStaff(it) }
-                if (result != null) {
-                    if (result.isSuccess) {
-                        Toast.makeText(this@StaffConfigurationActivity, "Staff added successfully", Toast.LENGTH_SHORT).show()
-                        finish()
-                    } else {
-                        val error = result.exceptionOrNull()
-                        Toast.makeText(this@StaffConfigurationActivity, "Error: ${error?.message}", Toast.LENGTH_SHORT).show()
-                    }
+                val result = SupabaseManager.addStaff(staff)
+                if (result.isSuccess) {
+                    Toast.makeText(this@StaffConfigurationActivity, "Staff added successfully", Toast.LENGTH_SHORT).show()
+                    finish()
+                } else {
+                    val err = result.exceptionOrNull()
+                    Toast.makeText(this@StaffConfigurationActivity, "Error: ${err?.message}", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 Toast.makeText(this@StaffConfigurationActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
-                binding.btnSave.isEnabled = true
-                binding.progressBar.visibility = View.GONE
+                setSaving(false)
             }
         }
     }
 
+    private fun setSaving(saving: Boolean) {
+        binding.btnSave.isEnabled = !saving
+        binding.progressBar.visibility = if (saving) View.VISIBLE else View.GONE
+        binding.btnSave.text = if (saving) "Saving..." else "SAVE STAFF"
+    }
+
     private fun getContactName(): String {
-        return intent.getStringExtra("contact_name")?.takeIf { it.isNotEmpty() }
-            ?: binding.etManualName.text.toString().trim()
+        val fromIntent = intent.getStringExtra("contact_name")?.trim().orEmpty()
+        return if (fromIntent.isNotEmpty()) fromIntent else binding.etManualName.text?.toString()?.trim().orEmpty()
     }
 
     private fun getContactPhone(): String {
-        return intent.getStringExtra("contact_phone")?.takeIf { it.isNotEmpty() }
-            ?: binding.etManualPhone.text.toString().trim()
+        val fromIntent = intent.getStringExtra("contact_phone")?.trim().orEmpty()
+        return if (fromIntent.isNotEmpty()) fromIntent else binding.etManualPhone.text?.toString()?.trim().orEmpty()
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
-        return true
-    }
+    private fun safeColor(primaryId: Int, fallbackId: Int): Int =
+        try { ContextCompat.getColor(this, primaryId) }
+        catch (_: Exception) { ContextCompat.getColor(this, fallbackId) }
 }

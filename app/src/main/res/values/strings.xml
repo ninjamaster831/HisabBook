@@ -18,8 +18,7 @@
     <string name="contact_permission_required">Contact permission is required to add staff</string>
     <string name="permissions_updated_successfully">Permissions updated successfully</string>
 
-
-
+    <string name="app_tagline">Manage Your Finances with Ease</string>
     <string name="mark_attendance">Mark Attendance</string>
     <string name="present">Present</string>
     <string name="absent">Absent</string>

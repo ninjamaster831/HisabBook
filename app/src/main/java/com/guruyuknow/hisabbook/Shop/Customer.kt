@@ -22,7 +22,12 @@ data class Customer(
         return dateFormat.format(Date(createdAt))
     }
 }
-
+@Serializable
+data class Sale(
+    val id: String,
+    val amount: Double = 0.0,
+    val timestamp: Long
+)
 @Serializable
 data class Purchase(
     val id: Long = 0,

@@ -75,4 +75,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation ("androidx.work:work-runtime-ktx:2.8.1")
+
+
+    implementation ("com.github.PhilJay:MPAndroidChart:v3.1.0")
 }

@@ -15,42 +15,72 @@
         android:layout_height="wrap_content"
         android:fitsSystemWindows="true"
         android:background="?attr/colorSurface"
-        app:elevation="0dp">
+        android:elevation="4dp"
+        app:elevation="4dp"
+        app:layout_scrollFlags="scroll|enterAlways|snap">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
             app:title="Bills"
+            app:titleTextAppearance="@style/TextAppearance.Material3.HeadlineSmall"
             app:titleCentered="true"
-            app:navigationIconTint="?attr/colorOnSurface"/>
+            app:navigationIconTint="?attr/colorOnSurface"
+            app:menu="@menu/bills_menu"
+            app:layout_scrollFlags="scroll|enterAlways"/>
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayout"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
             app:tabIndicatorFullWidth="false"
-            app:tabIndicatorAnimationDuration="250"
+            app:tabIndicatorAnimationDuration="300"
+            app:tabIndicatorHeight="3dp"
+            app:tabIndicatorColor="?attr/colorPrimary"
             app:tabMode="fixed"
-            app:tabGravity="fill"/>
+            app:tabGravity="fill"
+            app:tabSelectedTextColor="?attr/colorPrimary"
+            app:tabTextColor="?attr/colorOnSurfaceVariant"
+            app:tabRippleColor="?attr/colorPrimary"
+            app:tabTextAppearance="@style/TextAppearance.Material3.LabelLarge"
+            style="@style/Widget.Material3.TabLayout"/>
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:paddingTop="8dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:clipToPadding="false"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <!-- Enhanced FAB with proper behavior -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fabAdd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:contentDescription="Add Bill"
-        app:srcCompat="@drawable/ic_add_24"
-        app:tint="?attr/colorOnPrimary"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:text="Add Bill"
+        app:icon="@drawable/ic_add_24"
+        app:iconTint="?attr/colorOnPrimary"
         app:backgroundTint="?attr/colorPrimary"
+        app:tint="?attr/colorOnPrimary"
         app:borderWidth="0dp"
+        app:elevation="6dp"
+        app:hoveredFocusedTranslationZ="8dp"
+        app:pressedTranslationZ="12dp"
         app:layout_anchor="@id/viewPager"
         app:layout_anchorGravity="bottom|end"
-        android:layout_margin="16dp"/>
+        app:layout_behavior="com.google.android.material.behavior.HideBottomViewOnScrollBehavior"
+        app:shrinkMotionSpec="@animator/fab_shrink_motion"
+        app:extendMotionSpec="@animator/fab_extend_motion"/>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

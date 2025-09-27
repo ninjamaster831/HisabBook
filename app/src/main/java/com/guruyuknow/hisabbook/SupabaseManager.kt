@@ -25,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.Json
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.text.SimpleDateFormat
@@ -44,17 +45,43 @@ object SupabaseManager {
         supabaseKey = SUPABASE_ANON_KEY
     ) {
         install(Auth)
-        install(Postgrest){
-            serializer = KotlinXSerializer()
+        install(Postgrest) {
+            serializer = KotlinXSerializer(
+                Json {
+                    ignoreUnknownKeys = true  // 👈 Add this
+                }
+            )
         }
         install(Storage)
     }.also {
         isClientInitialized = true
         Log.d("SupabaseManager", "Supabase client initialized")
     }
+    fun getPublicFileUrl(bucket: String, pathOrUrl: String?): String? {
+        val raw = pathOrUrl?.trim()?.trim('"') ?: return null
+        return if (raw.startsWith("http://", ignoreCase = true) || raw.startsWith("https://", ignoreCase = true)) {
+            raw
+        } else {
+            try {
+                client.storage[bucket].publicUrl(raw)
+            } catch (e: Exception) {
+                Log.e("SupabaseManager", "publicUrl failed for $bucket/$raw: ${e.message}", e)
+                null
+            }
+        }
+    }
 
+    
     // ==================== STAFF MANAGEMENT ====================
-
+    suspend fun addCoins(userId: String, coinsToAdd: Int): Result<Unit> {
+        return try {
+            val currentCoins = StatsDatabase.getUserCoins(userId).getOrElse { 0 }
+            StatsDatabase.updateUserCoins(userId, currentCoins + coinsToAdd)
+        } catch (e: Exception) {
+            Log.e("SupabaseManager", "Error adding coins", e)
+            Result.failure(e)
+        }
+    }
     suspend fun addStaff(staff: Staff): Result<Staff> {
         return try {
             withContext(Dispatchers.IO) {

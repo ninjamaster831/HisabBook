@@ -30,18 +30,27 @@ class BillsListFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        adapter = BillHistoryAdapter()
+        setupRecyclerView()
+        setupRefreshListener()
+        setupFragmentResultListener()
+        load()
+    }
+
+    private fun setupRecyclerView() {
+        adapter = BillHistoryAdapter(viewLifecycleOwner) // binds BillWithEntry
         binding.recycler.layoutManager = LinearLayoutManager(requireContext())
         binding.recycler.adapter = adapter
+    }
 
-        // refresh after a bill is saved
+    private fun setupRefreshListener() {
+        binding.swipe.setOnRefreshListener { load() }
+    }
+
+    private fun setupFragmentResultListener() {
         parentFragmentManager.setFragmentResultListener("bill_saved", viewLifecycleOwner) { _, _ ->
             Log.d(TAG, "FragmentResult: bill_saved received -> reload()")
             load()
         }
-
-        binding.swipe.setOnRefreshListener { load() }
-        load()
     }
 
     private fun showEmpty(isEmpty: Boolean) {
@@ -50,18 +59,36 @@ class BillsListFragment : Fragment() {
     }
 
     fun load() {
-        Log.d(TAG, "load(): requesting entries for type=$type")
+        Log.d(TAG, "load(): requesting bills for type=$type")
         binding.swipe.isRefreshing = true
         viewLifecycleOwner.lifecycleScope.launch {
-            val items = SupabaseCashbook.getEntriesByType(type)
-            Log.d(TAG, "load(): received ${items.size} rows for type=$type")
-            if (items.isNotEmpty()) {
-                Log.d(TAG, "first item -> id=${items.first().id}, amount=${items.first().amount}, category=${items.first().category}, date=${items.first().date}, pm=${items.first().paymentMethod}, type=${items.first().type}")
+            try {
+                val bills = SupabaseCashbook.getBillsByType(type)
+                Log.d(TAG, "load(): received ${bills.size} bills for type=$type")
+
+                bills.firstOrNull()?.let { first ->
+                    Log.d(TAG, "first bill -> id=${first.id}, image=${first.imageUrl}, amount(entry)=${first.entry?.amount}, type(entry)=${first.entry?.type}")
+                }
+
+                adapter.submitList(bills)
+                showEmpty(bills.isEmpty())
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading bills", e)
+                showEmpty(true)
+            } finally {
+                binding.swipe.isRefreshing = false
             }
-            adapter.submitList(items)
-            showEmpty(items.isEmpty())
-            binding.swipe.isRefreshing = false
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        load()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     companion object {
