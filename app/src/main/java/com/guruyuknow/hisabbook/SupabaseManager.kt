@@ -25,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -390,7 +391,162 @@ object SupabaseManager {
             Result.failure(e)
         }
     }
+    @Serializable
+    data class EventDto(
+        val id: String,
+        val name: String,
+        val description: String? = null,
+        val location: String? = null,
+        val start_date: Long,
+        val end_date: Long? = null,
+        val created_by: String,
+        val created_at: Long,
+        val updated_at: Long
+    )
 
+    @Serializable
+    data class EventExpenseDto(
+        val id: String,
+        val event_id: String,
+        val title: String,
+        val amount: Double,
+        val category: String,
+        val notes: String? = null,
+        val paid_by: String,
+        val date: Long,
+        val created_at: Long
+    )
+
+// In SupabaseManager object:
+
+    suspend fun createEvent(event: Event): String {
+        val eventDto = EventDto(
+            id = event.id,
+            name = event.name,
+            description = event.description,
+            location = event.location,
+            start_date = event.startDate,
+            end_date = event.endDate,
+            created_by = event.createdBy,
+            created_at = event.createdAt,
+            updated_at = event.updatedAt
+        )
+
+        client.from("events").insert(eventDto)
+        return event.id
+    }
+
+    suspend fun getEventById(eventId: String): Event {
+        val eventDto = client.from("events")
+            .select {
+                filter {
+                    eq("id", eventId)
+                }
+            }
+            .decodeSingle<EventDto>()
+
+        return Event(
+            id = eventDto.id,
+            name = eventDto.name,
+            description = eventDto.description,
+            location = eventDto.location,
+            startDate = eventDto.start_date,
+            endDate = eventDto.end_date,
+            createdBy = eventDto.created_by,
+            createdAt = eventDto.created_at,
+            updatedAt = eventDto.updated_at
+        )
+    }
+
+
+    suspend fun getUserEvents(userId: String): List<Event> {
+        val eventDtos = client.from("events")
+            .select {
+                filter { eq("created_by", userId) }
+                order("created_at", Order.DESCENDING)   // ✅ correct ordering API
+            }
+            .decodeList<EventDto>()
+
+        return eventDtos.map { dto ->
+            Event(
+                id = dto.id,
+                name = dto.name,
+                description = dto.description,
+                location = dto.location,
+                startDate = dto.start_date,
+                endDate = dto.end_date,
+                createdBy = dto.created_by,
+                createdAt = dto.created_at,
+                updatedAt = dto.updated_at
+            )
+        }
+    }
+
+    suspend fun getEventExpenses(eventId: String): List<EventExpense> {
+        val expenseDtos = client.from("event_expenses")
+            .select {
+                filter { eq("event_id", eventId) }
+                order("date", Order.DESCENDING)         // ✅ correct ordering API
+            }
+            .decodeList<EventExpenseDto>()
+
+        return expenseDtos.map { dto ->
+            EventExpense(
+                id = dto.id,
+                eventId = dto.event_id,
+                title = dto.title,
+                amount = dto.amount,
+                category = dto.category,
+                notes = dto.notes,
+                paidBy = dto.paid_by,
+                date = dto.date,
+                createdAt = dto.created_at
+            )
+        }
+    }
+
+
+    suspend fun addEventExpense(expense: EventExpense): String {
+        val expenseDto = EventExpenseDto(
+            id = expense.id,
+            event_id = expense.eventId,
+            title = expense.title,
+            amount = expense.amount,
+            category = expense.category,
+            notes = expense.notes,
+            paid_by = expense.paidBy,
+            date = expense.date,
+            created_at = expense.createdAt
+        )
+
+        client.from("event_expenses").insert(expenseDto)
+        return expense.id
+    }
+
+
+    suspend fun deleteEventExpense(expenseId: String) {
+        client.from("event_expenses").delete {
+            filter {
+                eq("id", expenseId)
+            }
+        }
+    }
+
+    suspend fun deleteEvent(eventId: String) {
+        // First delete all expenses
+        client.from("event_expenses").delete {
+            filter {
+                eq("event_id", eventId)
+            }
+        }
+
+        // Then delete the event
+        client.from("events").delete {
+            filter {
+                eq("id", eventId)
+            }
+        }
+    }
     suspend fun getTodayAttendance(businessOwnerId: String): Result<List<Attendance>> {
         return try {
             withContext(Dispatchers.IO) {

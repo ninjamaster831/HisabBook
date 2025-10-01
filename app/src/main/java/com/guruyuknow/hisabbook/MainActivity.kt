@@ -42,10 +42,9 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_home -> { loadFragment(HomeFragment()); true }
                 R.id.nav_chat -> { loadFragment(ChatFragment()); true }
                 R.id.nav_add -> {
-                    // Keep selection unchanged for the center FAB/tab
-                    // TODO: Show your bottom sheet (Create / Join / Choose)
-                    // Example: AddActionSheet().show(supportFragmentManager, "add_sheet")
-                    false
+                    // Show the add action bottom sheet
+                    AddActionBottomSheet().show(supportFragmentManager, "add_action")
+                    false // Keep current selection unchanged
                 }
                 R.id.nav_statistics -> { loadFragment(StatisticsFragment()); true }
                 R.id.nav_profile -> { loadFragment(ProfileFragment()); true }

@@ -50,12 +50,14 @@
         <!-- Today's Summary Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/todaySummaryCard"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             app:cardBackgroundColor="@color/card_background"
             app:cardCornerRadius="16dp"
             app:cardElevation="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/subtitleText">
 
             <LinearLayout
@@ -89,7 +91,6 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-
                             android:text="Income"
                             android:textColor="@color/violet_light"
                             android:textSize="12sp" />
@@ -176,11 +177,13 @@
 
         <LinearLayout
             android:id="@+id/quickActionsLayout"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:orientation="horizontal"
             android:weightSum="3"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/quickActionsTitle">
 
             <com.google.android.material.button.MaterialButton
@@ -239,11 +242,13 @@
         <!-- First Row: Cash Flow & Sales -->
         <LinearLayout
             android:id="@+id/firstRowCards"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:orientation="horizontal"
             android:weightSum="2"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/overviewTitle">
 
             <!-- Cash Flow Card -->
@@ -267,7 +272,6 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-
                         android:text="Monthly Cash Flow"
                         android:textColor="@color/violet_light"
                         android:textSize="12sp" />
@@ -323,7 +327,6 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-
                         android:text="Sales"
                         android:textColor="@color/violet_light"
                         android:textSize="12sp" />
@@ -332,7 +335,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-
                         android:text="Today"
                         android:textColor="@color/violet_light"
                         android:textSize="10sp" />
@@ -342,7 +344,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-
                         android:textColor="@color/success_green"
                         android:textSize="16sp"
                         tools:text="₹8,000" />
@@ -351,7 +352,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-
                         android:text="This Month"
                         android:textColor="@color/violet_light"
                         android:textSize="10sp" />
@@ -369,16 +369,67 @@
             </androidx.cardview.widget.CardView>
 
         </LinearLayout>
+        <TextView
+            android:id="@+id/eventsTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Events"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/firstRowCards" />
+
+        <LinearLayout
+            android:id="@+id/eventsEmptyState"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/eventsTitle">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No events yet"
+                android:textColor="@color/violet_light"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Create one from the + button"
+                android:textColor="@color/violet_light"/>
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/eventsRecycler"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:paddingTop="8dp"
+            android:clipToPadding="false"
+            android:nestedScrollingEnabled="false"
+            app:layout_constraintTop_toBottomOf="@id/eventsEmptyState"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:listitem="@layout/item_event"
+            tools:itemCount="2" />
+
 
         <!-- Second Row: Purchases & Staff -->
         <LinearLayout
             android:id="@+id/secondRowCards"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:orientation="horizontal"
             android:weightSum="2"
-            app:layout_constraintTop_toBottomOf="@id/firstRowCards">
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/eventsRecycler">
 
             <!-- Purchases Card -->
             <androidx.cardview.widget.CardView
@@ -401,7 +452,6 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-
                         android:text="Monthly Purchases"
                         android:textColor="@color/violet_light"
                         android:textSize="12sp" />
@@ -411,7 +461,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-
                         android:textColor="@color/warning_orange"
                         android:textSize="18sp"
                         tools:text="₹45,000" />
@@ -441,7 +490,6 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-
                         android:text="Staff"
                         android:textColor="@color/violet_light"
                         android:textSize="12sp" />
@@ -451,7 +499,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-
                         android:textColor="@color/white"
                         android:textSize="16sp"
                         tools:text="5 Active" />
@@ -461,7 +508,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-
                         android:textColor="@color/violet_light"
                         android:textSize="12sp"
                         tools:text="₹25,000/month" />
@@ -475,12 +521,14 @@
         <!-- Loans Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/loansCard"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             app:cardBackgroundColor="@color/card_background"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/secondRowCards">
 
             <LinearLayout
@@ -500,7 +548,6 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-
                         android:text="Loans Given"
                         android:textColor="@color/violet_light"
                         android:textSize="12sp" />
@@ -510,7 +557,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-
                         android:textColor="@color/warning_orange"
                         android:textSize="14sp"
                         tools:text="₹50,000" />
@@ -527,7 +573,6 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-
                         android:text="Loans Received"
                         android:textColor="@color/violet_light"
                         android:textSize="12sp" />
@@ -537,7 +582,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-
                         android:textColor="@color/success_green"
                         android:textSize="14sp"
                         tools:text="₹30,000" />
@@ -579,7 +623,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-
             android:text="Recent Transactions"
             android:textColor="@color/white"
             android:textSize="18sp"
@@ -588,7 +631,7 @@
 
         <androidx.cardview.widget.CardView
             android:id="@+id/recentTransactionsCard"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:layout_marginBottom="16dp"
@@ -596,6 +639,8 @@
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp"
             app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/recentTransactionsTitle">
 
             <LinearLayout
@@ -655,7 +700,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
                     android:layout_margin="8dp"
-
                     android:text="View All Transactions"
                     android:textColor="@color/violet_primary"
                     app:cornerRadius="8dp" />

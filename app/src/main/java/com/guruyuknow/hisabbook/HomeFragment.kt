@@ -1,30 +1,52 @@
 package com.guruyuknow.hisabbook
 
+import android.app.DatePickerDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.textfield.TextInputEditText
 import com.guruyuknow.hisabbook.databinding.FragmentHomeBinding
+import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
-import android.widget.Toast
-// import com.google.android.material.snackbar.Snackbar
 
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
-    private val binding get() = _binding!!   // Don't use this inside coroutines; use a local snapshot
+    private val binding get() = _binding!!
 
     private lateinit var recentTransactionsAdapter: RecentTransactionsAdapter
     private val homeDatabase = HomeDatabase()
     private val numberFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
     private val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    private lateinit var eventsAdapter: EventsAdapter
+
+    // For add-entry dialog (mirrors Cashbook)
+    private val isoDateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    private val displayDayFormatter = SimpleDateFormat("dd MMM", Locale.getDefault())
+
+    @Serializable
+    private data class CashbookEntryInsert(
+        @SerialName("user_id") val userId: String,
+        val amount: Double,
+        val type: String, // "IN" or "OUT"
+        @SerialName("payment_method") val paymentMethod: String, // "CASH"/"ONLINE"
+        val description: String? = null,
+        val category: String? = null,
+        val date: String // "yyyy-MM-dd"
+    )
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -39,24 +61,53 @@ class HomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupUI()
         loadDashboardData()
+        loadUserEvents()
+
+        parentFragmentManager.setFragmentResultListener("event_created", viewLifecycleOwner) { _, bundle ->
+            val eventId = bundle.getString("event_id") ?: return@setFragmentResultListener
+            loadUserEvents()
+            EventDetailBottomSheet.newInstance(eventId)
+                .show(parentFragmentManager, "event_detail")
+        }
+    }
+
+    private fun loadUserEvents() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val user = SupabaseManager.getCurrentUser()
+                if (user?.id == null) {
+                    showErrorMessage("Please login to see your events")
+                    if (::eventsAdapter.isInitialized) eventsAdapter.submitList(emptyList())
+                    return@launch
+                }
+                val events = SupabaseManager.getUserEvents(user.id!!)
+                if (::eventsAdapter.isInitialized) eventsAdapter.submitList(events)
+            } catch (e: Exception) {
+                showErrorMessage("Failed to load events: ${e.message}")
+            }
+        }
     }
 
     private fun setupUI() {
-        // Setup greeting
         setupGreeting()
 
-        // Setup RecyclerView for recent transactions
         recentTransactionsAdapter = RecentTransactionsAdapter { transaction: Transaction ->
-            // Handle transaction item click
             navigateToTransactionDetails(transaction)
         }
-
         binding.recentTransactionsRecycler.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = recentTransactionsAdapter
         }
 
-        // Setup click listeners
+        eventsAdapter = EventsAdapter { event ->
+            EventDetailBottomSheet.newInstance(event.id)
+                .show(parentFragmentManager, "event_detail")
+        }
+        binding.eventsRecycler.apply {
+            layoutManager = LinearLayoutManager(context)
+            adapter = eventsAdapter
+        }
+
         setupClickListeners()
     }
 
@@ -72,12 +123,10 @@ class HomeFragment : Fragment() {
 
     private fun setupClickListeners() {
         _binding?.apply {
-            // Quick action buttons
-            quickAddExpenseBtn.setOnClickListener { navigateToAddExpense() }
-            quickAddSaleBtn.setOnClickListener { navigateToAddSale() }
-            quickAddPurchaseBtn.setOnClickListener { navigateToAddPurchase() }
+            quickAddExpenseBtn.setOnClickListener { showAddCashbookEntryDialogFromHome("OUT", "Expense") }
+            quickAddSaleBtn.setOnClickListener    { showAddCashbookEntryDialogFromHome("IN",  "Sale") }
+            quickAddPurchaseBtn.setOnClickListener{ showAddCashbookEntryDialogFromHome("OUT", "Purchase") }
 
-            // Card clicks for detailed views
             cashFlowCard.setOnClickListener { navigateToCashbook() }
             salesCard.setOnClickListener { navigateToSales() }
             purchasesCard.setOnClickListener { navigateToPurchases() }
@@ -87,39 +136,150 @@ class HomeFragment : Fragment() {
         }
     }
 
+    // ---------- DIALOG (exact Cashbook feel) ----------
+    private fun showAddCashbookEntryDialogFromHome(
+        type: String,                 // "IN" or "OUT"
+        prefillCategory: String? = null
+    ) {
+        val ctx = requireContext()
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_entry, null)
+
+        val amountInput      = dialogView.findViewById<TextInputEditText>(R.id.amountInput)
+        val descriptionInput = dialogView.findViewById<TextInputEditText>(R.id.descriptionInput)
+        val categoryInput    = dialogView.findViewById<TextInputEditText>(R.id.categoryInput)
+        val cashRadio        = dialogView.findViewById<MaterialButton>(R.id.cashRadio)
+        val onlineRadio      = dialogView.findViewById<MaterialButton>(R.id.onlineRadio)
+        val dateButton       = dialogView.findViewById<MaterialButton>(R.id.dateButton)
+
+        prefillCategory?.let { categoryInput.setText(it) }
+
+        var selectedPaymentMethod = "CASH"
+        var selectedDate = isoDateFormatter.format(Date())
+
+        dateButton.text = displayDayFormatter.format(Date())
+
+        cashRadio.setOnClickListener {
+            selectedPaymentMethod = "CASH"
+            updatePaymentMethodButtonsFromHome(cashRadio, onlineRadio, true)
+        }
+        onlineRadio.setOnClickListener {
+            selectedPaymentMethod = "ONLINE"
+            updatePaymentMethodButtonsFromHome(cashRadio, onlineRadio, false)
+        }
+
+        dateButton.setOnClickListener {
+            val cal = Calendar.getInstance()
+            DatePickerDialog(
+                ctx,
+                { _, y, m, d ->
+                    cal.set(y, m, d)
+                    selectedDate = isoDateFormatter.format(cal.time)
+                    dateButton.text = displayDayFormatter.format(cal.time)
+                },
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH),
+                cal.get(Calendar.DAY_OF_MONTH)
+            ).show()
+        }
+
+        val dialog = AlertDialog.Builder(ctx)
+            .setTitle(if (type == "IN") "Add Income" else "Add Expense")
+            .setView(dialogView)
+            .setPositiveButton("Save", null) // override for validation
+            .setNegativeButton("Cancel", null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val amount = amountInput.text?.toString()?.toDoubleOrNull()
+                val description = descriptionInput.text?.toString()?.trim().orEmpty()
+                val category = categoryInput.text?.toString()?.trim().orEmpty()
+
+                if (amount == null || amount <= 0) {
+                    Toast.makeText(ctx, "Please enter a valid amount", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                viewLifecycleOwner.lifecycleScope.launch {
+                    try {
+                        val user = SupabaseManager.getCurrentUser()
+                        val userId = user?.id
+                        if (userId.isNullOrEmpty()) {
+                            Toast.makeText(ctx, "Please login again", Toast.LENGTH_SHORT).show()
+                            return@launch
+                        }
+
+                        val body = CashbookEntryInsert(
+                            userId = userId,
+                            amount = amount,
+                            type = type,
+                            paymentMethod = selectedPaymentMethod,
+                            description = description.ifEmpty { null },
+                            category = category.ifEmpty { null },
+                            date = selectedDate
+                        )
+
+                        // insert using serializable DTO
+                        SupabaseManager.client
+                            .from("cashbook_entries")
+                            .insert(body) { select() }
+
+                        Toast.makeText(ctx, "Entry added successfully", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                        loadDashboardData() // refresh cards
+
+                    } catch (e: Exception) {
+                        Toast.makeText(ctx, "Error adding entry: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun updatePaymentMethodButtonsFromHome(
+        cashRadio: MaterialButton,
+        onlineRadio: MaterialButton,
+        isCashSelected: Boolean
+    ) {
+        if (isCashSelected) {
+            cashRadio.setBackgroundColor(requireContext().getColor(R.color.colorPrimary))
+            cashRadio.setTextColor(requireContext().getColor(android.R.color.white))
+            onlineRadio.setBackgroundColor(requireContext().getColor(android.R.color.transparent))
+            onlineRadio.setTextColor(requireContext().getColor(R.color.colorPrimary))
+        } else {
+            onlineRadio.setBackgroundColor(requireContext().getColor(R.color.colorPrimary))
+            onlineRadio.setTextColor(requireContext().getColor(android.R.color.white))
+            cashRadio.setBackgroundColor(requireContext().getColor(android.R.color.transparent))
+            cashRadio.setTextColor(requireContext().getColor(R.color.colorPrimary))
+        }
+    }
+
     private fun loadDashboardData() {
         viewLifecycleOwner.lifecycleScope.launch {
-            // snapshot the binding; if view is gone, stop immediately
             val b = _binding ?: return@launch
-
             try {
                 b.progressBar.visibility = View.VISIBLE
-
                 val currentUser = try {
                     SupabaseManager.getCurrentUser()
                 } catch (_: CancellationException) {
-                    // Lifecycle moved on; quietly stop
                     return@launch
                 }
-
                 if (currentUser?.id == null) {
                     showErrorMessage("User not authenticated")
                     return@launch
                 }
-
                 val result = homeDatabase.loadDashboardData(currentUser.id)
-
                 if (result.isSuccess) {
-                    result.getOrNull()?.let { data ->
-                        updateUI(data)
-                    } ?: showErrorMessage("No dashboard data available")
+                    result.getOrNull()?.let { data -> updateUI(data) }
+                        ?: showErrorMessage("No dashboard data available")
                 } else {
                     showErrorMessage("Failed to load dashboard data: ${result.exceptionOrNull()?.message}")
                 }
             } catch (e: Exception) {
                 showErrorMessage("Failed to load dashboard data: ${e.message}")
             } finally {
-                // re-check because the view may have been destroyed in the meantime
                 _binding?.progressBar?.visibility = View.GONE
             }
         }
@@ -128,7 +288,6 @@ class HomeFragment : Fragment() {
     private fun updateUI(data: DashboardData) {
         val b = _binding ?: return
 
-        // Today's cash flow
         b.todayIncomeAmount.text = numberFormat.format(data.todayIncome)
         b.todayExpenseAmount.text = numberFormat.format(data.todayExpenses)
         val todayBalance = data.todayIncome - data.todayExpenses
@@ -140,7 +299,6 @@ class HomeFragment : Fragment() {
                 resources.getColor(R.color.error_red, null)
         )
 
-        // Monthly overview
         b.monthlyIncomeAmount.text = numberFormat.format(data.monthlyIncome)
         b.monthlyExpenseAmount.text = numberFormat.format(data.monthlyExpenses)
         val monthlyProfit = data.monthlyIncome - data.monthlyExpenses
@@ -152,88 +310,44 @@ class HomeFragment : Fragment() {
                 resources.getColor(R.color.error_red, null)
         )
 
-        // Sales (from purchases table as per your data)
         b.todaySalesAmount.text = numberFormat.format(data.todaySales)
         b.monthlySalesAmount.text = numberFormat.format(data.monthlySales)
 
-        // Purchases
         b.monthlyPurchasesAmount.text = numberFormat.format(data.monthlyPurchases)
 
-        // Staff
         b.totalStaffCount.text = "${data.totalStaff} Active"
         b.monthlyStaffExpenseAmount.text = numberFormat.format(data.monthlyStaffExpenses)
 
-        // Loans
         b.loansGivenAmount.text = numberFormat.format(data.totalLoansGiven)
         b.loansReceivedAmount.text = numberFormat.format(data.totalLoansReceived)
         b.pendingCollectionsAmount.text = numberFormat.format(data.pendingCollections)
 
-        // Recent transactions
         recentTransactionsAdapter.submitList(data.recentTransactions as List<Transaction?>?)
 
-        // Empty state toggle
         val empty = data.recentTransactions.isEmpty()
         b.emptyStateLayout.visibility = if (empty) View.VISIBLE else View.GONE
         b.recentTransactionsRecycler.visibility = if (empty) View.GONE else View.VISIBLE
     }
 
-    // ==================== NAVIGATION METHODS ====================
-
-    private fun navigateToAddExpense() {
-        // TODO: Implement navigation
-    }
-
-    private fun navigateToAddSale() {
-        // TODO: Implement navigation
-    }
-
-    private fun navigateToAddPurchase() {
-        // TODO: Implement navigation
-    }
-
-    private fun navigateToCashbook() {
-        // TODO: Implement navigation
-    }
-
-    private fun navigateToSales() {
-        // TODO: Implement navigation
-    }
-
-    private fun navigateToPurchases() {
-        // TODO: Implement navigation
-    }
-
-    private fun navigateToStaffManagement() {
-        // TODO: Implement navigation
-    }
-
-    private fun navigateToLoans() {
-        // TODO: Implement navigation
-    }
-
-    private fun navigateToAllTransactions() {
-        // TODO: Implement navigation
-    }
-
-    private fun navigateToTransactionDetails(transaction: Transaction) {
-        // TODO: Implement navigation, pass `transaction`
-    }
+    // ------- (stubs, keep as-is or wire later) -------
+    private fun navigateToCashbook() {}
+    private fun navigateToSales() {}
+    private fun navigateToPurchases() {}
+    private fun navigateToStaffManagement() {}
+    private fun navigateToLoans() {}
+    private fun navigateToAllTransactions() {}
+    private fun navigateToTransactionDetails(transaction: Transaction) {}
 
     private fun showErrorMessage(message: String) {
         _binding?.root?.let { root ->
-            // Snackbar example:
-            // Snackbar.make(root, message, Snackbar.LENGTH_LONG).show()
             Toast.makeText(root.context, message, Toast.LENGTH_LONG).show()
         } ?: run {
-            if (isAdded) {
-                Toast.makeText(requireActivity(), message, Toast.LENGTH_LONG).show()
-            }
+            if (isAdded) Toast.makeText(requireActivity(), message, Toast.LENGTH_LONG).show()
         }
     }
 
     override fun onResume() {
         super.onResume()
-        // Optional: comment this out if you don't want auto-refresh on return.
         loadDashboardData()
     }
 

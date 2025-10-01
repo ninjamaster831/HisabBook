@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_background_hisab">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:background="#F5F6F5">
+
+            <!-- Group Header -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="#E8F5E9"
+                app:strokeColor="#C8E6C9"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp"
+                    android:background="@drawable/gradient_background_hisab">
+
+                    <TextView
+                        android:id="@+id/tvGroupName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Group Name"
+                        android:textStyle="bold"
+                        android:textSize="22sp"
+                        android:textColor="#212121"
+                        android:fontFamily="sans-serif-medium"
+                        android:layout_marginBottom="12dp"/>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:id="@+id/tvMemberCount"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="0 members"
+                            android:textSize="16sp"
+                            android:textColor="#757575"
+                            android:drawablePadding="8dp"/>
+
+                        <TextView
+                            android:id="@+id/tvBudget"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="No budget set"
+                            android:textSize="16sp"
+                            android:textColor="#757575"
+                            android:drawableStart="@drawable/ic_info"
+                            android:drawablePadding="8dp"/>
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvTotalExpenses"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="Total: ₹0.00"
+                        android:textSize="16sp"
+                        android:textColor="#212121"
+                        android:fontFamily="sans-serif"/>
+
+                    <TextView
+                        android:id="@+id/tvPerPerson"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Per Person: ₹0.00"
+                        android:textSize="16sp"
+                        android:textColor="#212121"
+                        android:fontFamily="sans-serif"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Loading Indicator -->
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progressIndicator"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:indeterminate="true"
+                android:visibility="gone"
+                app:indicatorColor="#1976D2"
+                app:trackColor="#E0F2E9"
+                android:layout_marginVertical="8dp"/>
+
+            <!-- Balances Section -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:text="Balances"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:textColor="#212121"
+                android:fontFamily="sans-serif-medium"/>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvBalances"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:paddingBottom="12dp"
+                android:clipToPadding="false"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+
+            <!-- Expenses Section -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="8dp"
+                android:text="Recent Expenses"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:textColor="#212121"
+                android:fontFamily="sans-serif-medium"/>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvExpenses"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:paddingBottom="12dp"
+                android:clipToPadding="false"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+
+            <!-- Settlement Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnViewSettlements"
+                style="@style/Widget.Material3.Button.ElevatedButton"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="12dp"
+                android:text="Calculate Settlements"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif-medium"
+                app:cornerRadius="12dp"
+                app:backgroundTint="#2E7D32"
+                app:icon="@drawable/ic_calculate"
+                app:iconGravity="start"
+                app:iconPadding="8dp"/>
+
+            <!-- Settlements Section -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:text="Settlements"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:textColor="#212121"
+                android:fontFamily="sans-serif-medium"/>
+            <TextView
+                android:id="@+id/tvNoSettlements"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No settlements required"
+                android:textSize="14sp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:gravity="center"
+                android:visibility="gone"
+                android:layout_marginBottom="8dp"/>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvSettlements"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:nestedScrollingEnabled="false"
+                android:paddingBottom="12dp"
+                android:clipToPadding="false"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAddExpense"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="24dp"
+        android:contentDescription="Add Expense"
+        app:srcCompat="@android:drawable/ic_input_add"
+        app:backgroundTint="#1976D2"
+        app:tint="#FFFFFF"
+        app:fabSize="normal"
+        app:elevation="6dp"
+        app:hoveredFocusedTranslationZ="12dp"
+        app:pressedTranslationZ="12dp"/>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
