@@ -14,7 +14,8 @@ data class Group(
     @SerialName("created_at")
     val createdAt: String? = null, // ISO timestamp from Supabase
     @SerialName("is_active")
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    @SerialName("join_code") val joinCode: String? = null
 )
 
 // Data class for settlement information

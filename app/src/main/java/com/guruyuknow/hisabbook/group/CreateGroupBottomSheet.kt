@@ -159,6 +159,11 @@ class CreateGroupBottomSheet : BottomSheetDialogFragment() {
                 Log.e(TAG, "Group creation failed: ${result.exceptionOrNull()?.message}")
             }
         }
+        viewModel.lastCreatedGroupCode.observe(viewLifecycleOwner) { code ->
+            code?.let {
+                Toast.makeText(requireContext(), "Share this code: $it", Toast.LENGTH_LONG).show()
+            }
+        }
 
         viewModel.errorMessage.observe(viewLifecycleOwner) { error ->
             Log.e(TAG, "errorMessage observed: $error")

@@ -21,7 +21,7 @@ class GroupDetailFragment : Fragment() {
 
     private val viewModel: GroupExpenseViewModel by viewModels()
     private var groupId: Long = 0
-
+    private lateinit var btnOpenChat: MaterialButton
     private lateinit var groupNameText: TextView
     private lateinit var budgetText: TextView
     private lateinit var totalExpensesText: TextView
@@ -84,7 +84,7 @@ class GroupDetailFragment : Fragment() {
         totalExpensesText = view.findViewById(R.id.tvTotalExpenses)
         perPersonText = view.findViewById(R.id.tvPerPerson)
         memberCountText = view.findViewById(R.id.tvMemberCount)
-
+        btnOpenChat = view.findViewById(R.id.btnOpenChat)
         expensesRecyclerView = view.findViewById(R.id.rvExpenses)
         balancesRecyclerView = view.findViewById(R.id.rvBalances)
         settlementsRecyclerView = view.findViewById(R.id.rvSettlements)
@@ -122,6 +122,13 @@ class GroupDetailFragment : Fragment() {
             Log.d("GroupDetailFragment", "Calculate Settlements clicked for groupId=$groupId")
             Toast.makeText(requireContext(), "Calculating settlements…", Toast.LENGTH_SHORT).show()
             viewModel.calculateSettlements(groupId)
+        }
+        btnOpenChat.setOnClickListener {
+            parentFragmentManager
+                .beginTransaction()
+                .replace(R.id.fragmentContainer, GroupChatFragment.newInstance(groupId))
+                .addToBackStack("group_chat")
+                .commit()
         }
     }
 

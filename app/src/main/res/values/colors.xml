@@ -24,6 +24,11 @@
     <color name="gray_light">#F5F5F5</color>
     <color name="gray_dark">#424242</color>
 
+    <color name="hsb_primary">#2E7D32</color>
+    <color name="hsb_primary_dark">#215C25</color>
+    <color name="hsb_primary_20">#332E7D32</color>
+    <color name="hsb_primary_08">#142E7D32</color>
+    <color name="hsb_accent_blue">#1976D2</color>
 
         <color name="colorPrimary">#6200EE</color> <!-- Violet (Material Primary) -->
         <color name="colorPrimaryDark">#3700B3</color>

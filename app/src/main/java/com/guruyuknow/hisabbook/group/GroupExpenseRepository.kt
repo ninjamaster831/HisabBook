@@ -14,10 +14,11 @@ import com.guruyuknow.hisabbook.data.expense.GroupMemberInsert
 import com.guruyuknow.hisabbook.data.expense.MemberBalanceInsert
 import com.guruyuknow.hisabbook.data.expense.MemberBalanceUpdate
 import com.guruyuknow.hisabbook.data.expense.ExpenseInsert
+import io.github.jan.supabase.exceptions.RestException
 import kotlin.math.round
 
 private const val TAG_RECALC = "Recalc"
-
+private const val TAG_CHAT = "GroupChat"
 class GroupExpenseRepository {
 
     private val supabase = SupabaseManager.client
@@ -27,6 +28,7 @@ class GroupExpenseRepository {
         const val GROUP_MEMBERS = "group_members"
         const val MEMBER_BALANCES = "member_balances"
         const val EXPENSES = "expenses"
+        const val GROUP_MESSAGES = "group_messages" // ✅ added
     }
 
     // ==================== GROUP OPERATIONS ====================
@@ -71,18 +73,57 @@ class GroupExpenseRepository {
         }
     }
 
-    suspend fun getAllActiveGroups(): List<Group> = withContext(Dispatchers.IO) {
+    /**
+     * Get all active groups where the user is either the creator OR a member
+     */
+    suspend fun getAllActiveGroups(userId: String): List<Group> = withContext(Dispatchers.IO) {
         try {
-            supabase.from(Tables.GROUPS)
+            // 1️⃣ Groups created by me
+            val createdGroups = supabase.from(Tables.GROUPS)
                 .select {
-                    filter { eq("is_active", true) }
+                    filter {
+                        eq("is_active", true)
+                        eq("created_by", userId)
+                    }
                     order(column = "created_at", order = Order.DESCENDING)
                 }
                 .decodeList<Group>()
-        } catch (_: Exception) {
+
+            // 2️⃣ Group IDs where I am a member
+            val memberGroupIds = supabase.from(Tables.GROUP_MEMBERS)
+                .select(columns = Columns.list("id:group_id")) {   // alias group_id → id
+                    filter { eq("user_id", userId) }
+                }
+                .decodeList<GroupIdOnly>()
+                .map { it.id }
+
+            // 3️⃣ Fetch those groups
+            val joinedGroups = if (memberGroupIds.isNotEmpty()) {
+                supabase.from(Tables.GROUPS)
+                    .select {
+                        filter {
+                            isIn("id", memberGroupIds)
+                            eq("is_active", true)
+                        }
+                        order(column = "created_at", order = Order.DESCENDING)
+                    }
+                    .decodeList<Group>()
+            } else {
+                emptyList()
+            }
+
+            // 4️⃣ Combine & remove duplicates
+            (createdGroups + joinedGroups)
+                .distinctBy { it.id }
+                .sortedByDescending { it.createdAt }
+        } catch (e: Exception) {
+            Log.e("GroupExpenseRepository", "Error fetching groups for user $userId", e)
             emptyList()
         }
     }
+
+
+
 
     suspend fun getGroupById(groupId: Long): Group? = withContext(Dispatchers.IO) {
         try {
@@ -127,7 +168,7 @@ class GroupExpenseRepository {
         groupId = groupId,
         amount = amount,
         description = description,
-        paidBy = payer.userId,       // <-- MUST match group_members.user_id
+        paidBy = payer.userId,
         paidByName = payer.userName
     )
 
@@ -222,7 +263,6 @@ class GroupExpenseRepository {
             val viaId = paidById[id] ?: 0.0
             val viaName = paidByName[norm(name)] ?: 0.0
 
-            // Prefer ID; fall back to name only if ID shows 0
             val paidAmount = if (viaId > 0.0) viaId else viaName
             val balance = paidAmount - perPerson
 
@@ -284,8 +324,67 @@ class GroupExpenseRepository {
 
         settlements
     }
+    suspend fun joinGroupByCodeWithPhone(
+        code: String,
+        phone: String,
+        userName: String
+    ): Result<Long> = withContext(Dispatchers.IO) {
+        try {
+            // 1. Find group by join_code
+            val group = supabase.from(Tables.GROUPS)
+                .select {
+                    filter { eq("join_code", code) }
+                    limit(1)
+                }
+                .decodeSingle<Group>()  // throws if not found
+
+            val groupId = group.id ?: return@withContext Result.failure<Long>(
+                IllegalStateException("Group id missing")
+            )
+
+            // 2. Insert into group_members (phone used as user_id)
+            supabase.from(Tables.GROUP_MEMBERS).insert(
+                GroupMemberInsert(
+                    group_id = groupId,
+                    user_id = phone,
+                    user_name = userName
+                )
+            )
+
+            // 3. Insert into member_balances
+            supabase.from(Tables.MEMBER_BALANCES).insert(
+                MemberBalanceInsert(
+                    group_id = groupId,
+                    user_id = phone,
+                    user_name = userName
+                )
+            )
+
+            Result.success(groupId)  // ✅ Non-nullable Long
+        } catch (e: Exception) {
+            Log.e(TAG_CHAT, "joinGroupByCodeWithPhone() failed", e)
+            Result.failure(e)
+        }
+    }
 
     // ==================== STATISTICS ====================
+    private suspend fun isMember(groupId: Long, userId: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val rows = supabase.from(Tables.GROUP_MEMBERS)
+                .select {
+                    filter {
+                        eq("group_id", groupId)
+                        eq("user_id", userId)
+                    }
+                    limit(1)
+                }
+                .decodeList<GroupMember>()
+            rows.isNotEmpty()
+        } catch (e: Exception) {
+            Log.e(TAG_CHAT, "isMember() failed", e)
+            false
+        }
+    }
 
     suspend fun getGroupStatistics(groupId: Long): GroupStatistics = withContext(Dispatchers.IO) {
         val totalExpenses = getTotalExpenses(groupId)
@@ -299,6 +398,66 @@ class GroupExpenseRepository {
             budget = group?.budget,
             remainingBudget = group?.budget?.let { it - totalExpenses }
         )
+    }
+
+    // ==================== CHAT (moved inside the class) ====================
+    private fun logSupabaseError(tag: String, where: String, e: Throwable) {
+        Log.e(tag, "$where: ${e.message} (type=${e::class.qualifiedName})", e)
+        if (e is RestException) {
+            // These are the stable fields on RestException
+            Log.e(tag, "$where: error=${e.error ?: "-"}")
+            // If your library version later adds more fields, they just won’t crash here.
+        }
+    }
+    suspend fun sendMessage(groupId: Long, text: String, senderId: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            val trimmed = text.trim()
+            if (trimmed.isEmpty()) {
+                return@withContext Result.failure(IllegalArgumentException("Message is empty"))
+            }
+
+            try {
+                val inserted = supabase.from(Tables.GROUP_MESSAGES)
+                    .insert(
+                        GroupMessageInsert(
+                            groupId = groupId,
+                            senderId = senderId,
+                            message = trimmed
+                        )
+                    ) {
+                        select()  // return inserted row
+                        single()
+                    }
+                    .decodeAs<GroupMessage>() // your GroupMessage is @Serializable ✅
+
+                Log.d(TAG_CHAT, "sendMessage(): inserted id=${inserted.id} by=${inserted.senderId}")
+                Result.success(Unit)
+            } catch (e: RestException) {
+                logSupabaseError(TAG_CHAT, "sendMessage()", e)
+                Result.failure(e)
+            } catch (e: Exception) {
+                logSupabaseError(TAG_CHAT, "sendMessage()", e)
+                Result.failure(e)
+            }
+        }
+
+
+    suspend fun loadMessages(groupId: Long): Result<List<GroupMessage>> = withContext(Dispatchers.IO) {
+        try {
+            val rows = supabase.from(Tables.GROUP_MESSAGES)
+                .select {
+                    filter { eq("group_id", groupId) }
+                    order(column = "created_at", order = Order.DESCENDING)
+                }
+                .decodeList<GroupMessage>()
+            Result.success(rows.reversed())
+        } catch (e: RestException) {
+            logSupabaseError(TAG_CHAT, "loadMessages()", e)
+            Result.failure(e)
+        } catch (e: Exception) {
+            logSupabaseError(TAG_CHAT, "loadMessages()", e)
+            Result.failure(e)
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 package com.guruyuknow.hisabbook.group
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -8,6 +9,7 @@ import com.guruyuknow.hisabbook.Expense
 import com.guruyuknow.hisabbook.SupabaseManager
 import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.launch
+private const val TAG_VM_CHAT = "GroupChatVM"
 
 class GroupExpenseViewModel : ViewModel() {
 
@@ -53,6 +55,8 @@ class GroupExpenseViewModel : ViewModel() {
     val expenseAdded: LiveData<Boolean> = _expenseAdded
 
     // ==================== ACTIONS ====================
+    private val _lastCreatedGroupCode = MutableLiveData<String?>()
+    val lastCreatedGroupCode: LiveData<String?> = _lastCreatedGroupCode
 
     fun createGroup(name: String, budget: Double?, members: List<MemberInput>) {
         viewModelScope.launch {
@@ -63,6 +67,7 @@ class GroupExpenseViewModel : ViewModel() {
                 if (currentUserId == null) {
                     _groupCreationResult.value = Result.failure(IllegalStateException("User not logged in"))
                 } else {
+                    // call repository to create
                     val result = repository.createGroup(
                         name = name,
                         budget = budget,
@@ -70,7 +75,15 @@ class GroupExpenseViewModel : ViewModel() {
                         members = members
                     )
                     _groupCreationResult.value = result
-                    if (result.isSuccess) loadAllGroups()
+
+                    if (result.isSuccess) {
+                        // fetch group to read its code (or refactor repository to return it directly)
+                        // Fast path: reload groups and grab the most recent created by me with same name
+                        loadAllGroups()
+
+                        // optional — better: write a new repository.getGroupByNameCreatedBy(name, currentUserId) if you want exact code
+                        // Or modify repository.createGroup to return Group (with joinCode) instead of just Long.
+                    }
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to create group: ${e.message}"
@@ -80,13 +93,39 @@ class GroupExpenseViewModel : ViewModel() {
             }
         }
     }
+    private val _joinResult = MutableLiveData<Result<Long>>()
+    val joinResult: LiveData<Result<Long>> = _joinResult
+
+    fun joinGroupByCodeWithPhone(code: String, name: String, phone: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                // store phone as user_id directly
+                val res = repository.joinGroupByCodeWithPhone(code, phone, name)
+                _joinResult.value = res
+                if (res.isSuccess) loadAllGroups()
+            } catch (e: Exception) {
+                _errorMessage.value = "Failed to join: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
 
     fun loadAllGroups() {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                _allGroups.value = repository.getAllActiveGroups()
+                val currentUserId = getCurrentUserId()
+                if (currentUserId != null) {
+                    _allGroups.value = repository.getAllActiveGroups(currentUserId)
+                } else {
+                    _errorMessage.value = "User not logged in"
+                    _allGroups.value = emptyList()
+                }
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to load groups: ${e.message}"
             } finally {
@@ -201,11 +240,59 @@ class GroupExpenseViewModel : ViewModel() {
 
     fun markExpenseHandled() { _expenseAdded.value = false }
 
+    // ==================== CHAT STATE ====================
+    private val _messages = MutableLiveData<List<GroupMessage>>(emptyList())
+    val messages: LiveData<List<GroupMessage>> = _messages
+
+    fun loadMessages(groupId: Long) {
+        viewModelScope.launch {
+            Log.d(TAG_VM_CHAT, "loadMessages(): groupId=$groupId")
+            val res = repository.loadMessages(groupId)
+            if (res.isSuccess) {
+                _messages.value = res.getOrNull().orEmpty()
+            } else {
+                val msg = res.exceptionOrNull()?.message ?: "Unknown error"
+                Log.e(TAG_VM_CHAT, "loadMessages(): $msg", res.exceptionOrNull())
+                _errorMessage.value = "Failed to load messages: $msg"
+            }
+        }
+    }
+
+    fun sendMessage(groupId: Long, text: String) {
+        viewModelScope.launch {
+            val uid = try { SupabaseManager.client.auth.currentUserOrNull()?.id } catch (_: Exception) { null }
+            Log.d(TAG_VM_CHAT, "sendMessage(): uid=$uid groupId=$groupId text='${text.take(50)}'")
+            if (uid == null) {
+                _errorMessage.value = "You’re not logged in."
+                Log.e(TAG_VM_CHAT, "sendMessage(): currentUserOrNull() is null")
+                return@launch
+            }
+
+            val res = repository.sendMessage(groupId, text, uid)
+            if (res.isSuccess) {
+                // optimistic: append to list OR reload
+                // reload to be safe (keeps server time/order)
+                loadMessages(groupId)
+            } else {
+                val err = res.exceptionOrNull()
+                _errorMessage.value = "Failed to send: ${err?.message ?: "Unknown error"}"
+                Log.e(TAG_VM_CHAT, "sendMessage() failed", err)
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // If you later add repository.unsubscribeMessages(), call it here.
+        // viewModelScope.launch { repository.unsubscribeMessages() }
+    }
+
     // ==================== HELPERS ====================
 
     private fun getCurrentUserId(): String? =
         try { auth.currentUserOrNull()?.id } catch (_: Exception) { null }
 
+    @Suppress("SameReturnValue")
     private fun getCurrentUserName(): String =
         try {
             val email = auth.currentUserOrNull()?.email

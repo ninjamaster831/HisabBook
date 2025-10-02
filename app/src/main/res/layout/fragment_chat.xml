@@ -6,156 +6,295 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/gradient_background_hisab">
+    android:background="@drawable/bg_hisabbook_premium"
+    tools:context=".ChatFragment">
 
-    <!-- Main Content Container -->
-    <com.google.android.material.card.MaterialCardView
+    <!-- Collapsing hero header -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBar"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:cardElevation="2dp"
-        app:cardCornerRadius="16dp"
-        app:cardBackgroundColor="#F5F6F5"
-        android:layout_margin="8dp">
+        android:layout_height="240dp"
+        android:fitsSystemWindows="true">
 
-        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-            android:id="@+id/swipeRefresh"
+        <com.google.android.material.appbar.CollapsingToolbarLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:swipeRefreshLayoutProgressSpinnerBackgroundColor="#E0F2E9">
+            android:fitsSystemWindows="true"
+            app:layout_scrollFlags="scroll|exitUntilCollapsed"
+            app:contentScrim="@color/hsb_primary"
+            app:titleEnabled="false">
 
+            <!-- Brand banner -->
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="match_parent"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:paddingTop="28dp"
+                android:paddingBottom="24dp">
 
-                <!-- Groups RecyclerView with modern spacing -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="bottom">
+
+                    <ImageView
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:src="@drawable/logo"
+                        android:contentDescription="@string/app_name"
+                        android:background="@drawable/bg_logo_glass"
+                        android:padding="10dp"
+                        android:elevation="6dp"/>
+
+                    <TextView
+                        android:id="@+id/title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="HisabBook"
+                        android:textSize="26sp"
+                        android:textStyle="bold"
+                        android:textColor="@android:color/white"/>
+
+                    <TextView
+                        android:id="@+id/subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Groups &amp; shared expenses, made easy"
+                        android:textSize="14sp"
+                        android:textColor="#E6FFFFFF"/>
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Toolbar to pin on collapse -->
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:paddingStart="12dp"
+                app:layout_collapseMode="pin"
+                app:titleTextColor="@android:color/white"/>
+
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
+
+        <!-- Search + filter row -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/searchCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="8dp"
+            app:strokeColor="@color/hsb_primary_20"
+            app:strokeWidth="1dp"
+            app:layout_scrollFlags="enterAlways|snap">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.FilledBox.Dense"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:startIconDrawable="@drawable/ic_search"
+                    app:boxBackgroundColor="@android:color/transparent">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etSearch"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Search groups"
+                        android:inputType="text"/>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    app:singleSelection="true"
+                    app:selectionRequired="false">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipAll"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="All"
+                        android:checked="true"
+                        app:checkedIconVisible="false"/>
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipMine"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Created by me"
+                        app:checkedIconVisible="false"/>
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipJoined"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Joined"
+                        app:checkedIconVisible="false"/>
+                </com.google.android.material.chip.ChipGroup>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Content -->
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefresh"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="16dp"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="3dp"
+                app:cardBackgroundColor="@android:color/white"
+                app:strokeColor="@color/hsb_primary_08"
+                app:strokeWidth="1dp">
+
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/groupsRv"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:clipToPadding="false"
-                    android:paddingTop="20dp"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:paddingBottom="100dp"
-                    android:scrollbars="vertical"
-                    android:fadeScrollbars="true"
-                    android:overScrollMode="ifContentScrolls"
-                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                    tools:listitem="@layout/item_group"
-                    android:background="#F5F6F5"/>
+                    android:paddingTop="6dp"
+                    android:paddingBottom="110dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    tools:listitem="@layout/item_group"/>
+            </com.google.android.material.card.MaterialCardView>
 
-                <!-- Modern Empty State -->
-                <LinearLayout
-                    android:id="@+id/emptyView"
-                    android:layout_width="match_parent"
+            <!-- Empty state -->
+            <LinearLayout
+                android:id="@+id/emptyView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="24dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:src="@drawable/logo"
+                    android:contentDescription="@string/app_name"
+                    android:background="@drawable/bg_logo_glass"
+                    android:padding="12dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:orientation="vertical"
-                    android:padding="40dp"
-                    android:gravity="center"
-                    android:visibility="gone"
-                    android:background="@drawable/gradient_empty_state_hisab">
+                    android:layout_marginTop="18dp"
+                    android:text="No groups yet"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/hsb_primary_dark"/>
 
-                    <!-- Empty State Illustration -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
-                        app:cardCornerRadius="70dp"
-                        app:cardElevation="4dp"
-                        app:cardBackgroundColor="#E8F5E9"
-                        app:strokeColor="#C8E6C9"
-                        app:strokeWidth="1dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Create or join a group to start splitting expenses"
+                    android:textSize="14sp"
+                    android:textColor="#6A6A6A"/>
 
-                        <ImageView
-                            android:layout_width="80dp"
-                            android:layout_height="80dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_hisab_book"
-                            android:contentDescription="No groups"
-                            app:tint="#2E7D32"/>
-                    </com.google.android.material.card.MaterialCardView>
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal">
 
-                    <!-- Empty State Title -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="28dp"
-                        android:text="No Groups Yet"
-                        android:textAppearance="?attr/textAppearanceHeadlineMedium"
-                        android:textColor="#212121"
-                        android:fontFamily="sans-serif-medium"
-                        android:textAlignment="center"/>
-
-                    <!-- Empty State Subtitle -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="Create your first group to start\ntracking expenses with friends"
-                        android:textAppearance="?attr/textAppearanceBodyLarge"
-                        android:textColor="#757575"
-                        android:fontFamily="sans-serif"
-                        android:textAlignment="center"
-                        android:lineSpacingExtra="4dp"/>
-
-                    <!-- CTA Button -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnCreateFromEmpty"
                         android:layout_width="wrap_content"
-                        android:layout_height="56dp"
-                        android:layout_marginTop="28dp"
-                        android:text="Create Group"
-                        android:paddingStart="40dp"
-                        android:paddingEnd="40dp"
-                        android:textSize="16sp"
-                        app:cornerRadius="12dp"
+                        android:layout_height="wrap_content"
+                        android:text="Create"
                         app:icon="@drawable/ic_add_hisab"
                         app:iconGravity="start"
-                        app:iconPadding="8dp"
-                        app:backgroundTint="#2E7D32"
-                        app:rippleColor="#C8E6C9"
-                        style="@style/Widget.Material3.Button.ElevatedButton"/>
-                </LinearLayout>
-            </FrameLayout>
-        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-    </com.google.android.material.card.MaterialCardView>
+                        android:layout_marginEnd="8dp"
+                        app:cornerRadius="12dp"
+                        android:textColor="@android:color/white"
+                        app:backgroundTint="#2E7D32"/>
 
-    <!-- Modern Loading Indicator -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnJoinFromEmpty"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Join"
+                        app:icon="@drawable/ic_join_group"
+                        app:iconGravity="start"
+                        app:cornerRadius="12dp"
+                        android:textColor="@android:color/white"
+                        app:backgroundTint="#1976D2"/>
+                </LinearLayout>
+            </LinearLayout>
+        </FrameLayout>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <!-- Loading -->
     <com.google.android.material.progressindicator.CircularProgressIndicator
         android:id="@+id/loading"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
         android:layout_gravity="center"
         android:visibility="gone"
-        app:indicatorSize="64dp"
-        app:trackThickness="6dp"
-        app:trackCornerRadius="3dp"
-        app:indicatorColor="#1976D2"
-        app:trackColor="#E0F2E9"
-        android:animateLayoutChanges="true"/>
+        app:indicatorColor="@android:color/white"
+        app:trackColor="#40FFFFFF"/>
 
-    <!-- Extended FAB with modern styling -->
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-        android:id="@+id/fabCreate"
+    <!-- Stacked action FABs -->
+    <!-- Stacked action FABs -->
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="New Group"
-        android:contentDescription="Create new group"
-        app:icon="@drawable/ic_add_hisab"
-        app:layout_anchor="@id/swipeRefresh"
-        app:layout_anchorGravity="bottom|end"
-        android:layout_margin="24dp"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        app:elevation="8dp"
-        app:hoveredFocusedTranslationZ="12dp"
-        app:pressedTranslationZ="16dp"
-        app:backgroundTint="#1976D2"
-        app:rippleColor="#BBDEFB"
-        app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Medium"
-        app:iconTint="#FFFFFF"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:fontFamily="sans-serif-medium"/>
+        android:orientation="vertical"
+        android:gravity="end"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="20dp">
+
+        <!-- Join (regular FAB) -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabJoin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:contentDescription="Join Group"
+            app:srcCompat="@drawable/ic_join_group"
+            app:tint="@android:color/white"
+            app:backgroundTint="@color/hsb_accent_blue" />
+
+        <!-- Create (EXTENDED FAB) — matches ChatFragment field type -->
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/fabCreate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="New Group"
+            android:contentDescription="Create Group"
+            app:icon="@drawable/ic_add_hisab"
+            app:tint="@android:color/white"
+            app:backgroundTint="@color/hsb_primary" />
+    </LinearLayout>
+
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -14,10 +14,12 @@ import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.snackbar.Snackbar
 import androidx.recyclerview.widget.RecyclerView
 import android.widget.LinearLayout
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.guruyuknow.hisabbook.group.CreateGroupBottomSheet
 import com.guruyuknow.hisabbook.group.GroupDetailFragment
 import com.guruyuknow.hisabbook.group.GroupExpenseViewModel
 import com.guruyuknow.hisabbook.group.GroupListAdapter
+import com.guruyuknow.hisabbook.group.JoinGroupBottomSheet
 
 class ChatFragment : Fragment() {
 
@@ -29,7 +31,7 @@ class ChatFragment : Fragment() {
     private lateinit var emptyView: LinearLayout
     private lateinit var fabCreate: ExtendedFloatingActionButton
     private lateinit var btnCreateFromEmpty: MaterialButton
-
+    private lateinit var btnJoinFromEmpty: MaterialButton
     private lateinit var adapter: GroupListAdapter
 
     override fun onCreateView(
@@ -72,38 +74,46 @@ class ChatFragment : Fragment() {
     }
 
 
+
     private fun setupInteractions() {
-        swipeRefresh.setOnRefreshListener {
-            refreshGroups()
-        }
+        swipeRefresh.setOnRefreshListener { refreshGroups() }
 
-        // FAB click handler
+        // FAB click handler → show options
         fabCreate.setOnClickListener {
-            openCreateGroupSheet()
+            showGroupOptionsDialog()
         }
 
-        // Empty state button click handler
-        btnCreateFromEmpty.setOnClickListener {
-            openCreateGroupSheet()
-        }
+        btnCreateFromEmpty.setOnClickListener { openCreateGroupSheet() }
 
-        // Optional: Shrink FAB on scroll for better UX
         groupsRv.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                if (dy > 0 && fabCreate.isExtended) {
-                    fabCreate.shrink()
-                } else if (dy < 0 && !fabCreate.isExtended) {
-                    fabCreate.extend()
-                }
+                // fabCreate is ExtendedFloatingActionButton in XML now
+                if (dy > 0 && fabCreate.isExtended) fabCreate.shrink()
+                else if (dy < 0 && !fabCreate.isExtended) fabCreate.extend()
             }
         })
+
+    }
+
+    private fun showGroupOptionsDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Choose Action")
+            .setItems(arrayOf("Create Group", "Join Group")) { _, which ->
+                when (which) {
+                    0 -> openCreateGroupSheet()
+                    1 -> openJoinGroupSheet()
+                }
+            }
+            .show()
+    }
+
+    private fun openJoinGroupSheet() {
+        JoinGroupBottomSheet().show(parentFragmentManager, "JoinGroupBottomSheet")
     }
 
     private fun openCreateGroupSheet() {
-        val bottomSheet = CreateGroupBottomSheet()
-        bottomSheet.show(parentFragmentManager, "CreateGroupBottomSheet")
+        CreateGroupBottomSheet().show(parentFragmentManager, "CreateGroupBottomSheet")
     }
-
     private fun observeVm() {
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             loading.visibility = if (isLoading) View.VISIBLE else View.GONE
