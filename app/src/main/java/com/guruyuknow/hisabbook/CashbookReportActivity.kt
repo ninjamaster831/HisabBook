@@ -8,6 +8,9 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -16,6 +19,7 @@ import com.google.android.material.chip.ChipGroup
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.launch
+import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -44,8 +48,13 @@ class CashbookReportActivity : AppCompatActivity() {
     private lateinit var reportAdapter: CashbookReportAdapter
     private var currentUser: User? = null
 
-    // Date formatters
-    private val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    // Date / Currency
+    private val iso = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    private val currency = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
+
+    // Insets
+    private var baseRecyclerBottomPadding = 0
+    private var lastSystemBarBottomInset = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,6 +65,7 @@ class CashbookReportActivity : AppCompatActivity() {
         setupRecyclerView()
         setupClickListeners()
         setupChipListeners()
+        applyWindowInsets()
         loadCurrentUser()
     }
 
@@ -68,47 +78,80 @@ class CashbookReportActivity : AppCompatActivity() {
         transactionsRecyclerView = findViewById(R.id.transactionsRecyclerView)
         emptyStateLayout = findViewById(R.id.emptyStateLayout)
 
-        // Initialize chips
+        // Chips
         chipAll = findViewById(R.id.chipAll)
         chipToday = findViewById(R.id.chipToday)
         chipWeek = findViewById(R.id.chipWeek)
         chipMonth = findViewById(R.id.chipMonth)
         chipIncome = findViewById(R.id.chipIncome)
         chipExpense = findViewById(R.id.chipExpense)
+
+        baseRecyclerBottomPadding = transactionsRecyclerView.paddingBottom
     }
 
     private fun setupRecyclerView() {
         reportAdapter = CashbookReportAdapter(filteredEntries) { entry ->
             // Handle entry click - could show details or edit
-            Toast.makeText(this, "Entry: ${entry.description ?: "No description"}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                "Entry: ${entry.description ?: "(no description)"}",
+                Toast.LENGTH_SHORT
+            ).show()
         }
         transactionsRecyclerView.layoutManager = LinearLayoutManager(this)
         transactionsRecyclerView.adapter = reportAdapter
     }
 
     private fun setupClickListeners() {
-        backButton.setOnClickListener {
-            finish()
-        }
+        backButton.setOnClickListener { finish() }
 
         filterButton.setOnClickListener {
-            // Could implement advanced filtering options
+            // Could implement advanced filtering options (date range picker, categories, etc)
             Toast.makeText(this, "Advanced filters coming soon", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun setupChipListeners() {
+        // Ensure single selection is respected and we react to the active chip id
         filterChipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
-            if (checkedIds.isNotEmpty()) {
-                when (checkedIds[0]) {
-                    R.id.chipAll -> applyFilter(FilterType.ALL)
-                    R.id.chipToday -> applyFilter(FilterType.TODAY)
-                    R.id.chipWeek -> applyFilter(FilterType.THIS_WEEK)
-                    R.id.chipMonth -> applyFilter(FilterType.THIS_MONTH)
-                    R.id.chipIncome -> applyFilter(FilterType.INCOME_ONLY)
-                    R.id.chipExpense -> applyFilter(FilterType.EXPENSE_ONLY)
-                }
+            if (checkedIds.isEmpty()) return@setOnCheckedStateChangeListener
+            when (checkedIds.first()) {
+                R.id.chipAll -> applyFilter(FilterType.ALL)
+                R.id.chipToday -> applyFilter(FilterType.TODAY)
+                R.id.chipWeek -> applyFilter(FilterType.THIS_WEEK)
+                R.id.chipMonth -> applyFilter(FilterType.THIS_MONTH)
+                R.id.chipIncome -> applyFilter(FilterType.INCOME_ONLY)
+                R.id.chipExpense -> applyFilter(FilterType.EXPENSE_ONLY)
             }
+        }
+
+        // Ensure a default is selected (XML has checked="true", but we enforce)
+        chipAll.isChecked = true
+    }
+
+    private fun applyWindowInsets() {
+        val statusBarSpace = findViewById<View>(R.id.statusBarSpace)
+        val content = findViewById<View>(android.R.id.content)
+
+        ViewCompat.setOnApplyWindowInsetsListener(content) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            lastSystemBarBottomInset = bars.bottom
+
+            // Status bar spacer (uses at least 24dp)
+            statusBarSpace?.let { spacer ->
+                val min24 = resources.getDimensionPixelSize(R.dimen.spacing_24dp)
+                spacer.layoutParams = spacer.layoutParams.apply {
+                    height = maxOf(min24, bars.top)
+                }
+                spacer.requestLayout()
+            }
+
+            // Lift the list above the nav bar/gesture area
+            transactionsRecyclerView.updatePadding(
+                bottom = baseRecyclerBottomPadding + bars.bottom
+            )
+
+            insets
         }
     }
 
@@ -119,11 +162,19 @@ class CashbookReportActivity : AppCompatActivity() {
                 if (currentUser != null) {
                     loadAllTransactions()
                 } else {
-                    Toast.makeText(this@CashbookReportActivity, "Please login first", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@CashbookReportActivity,
+                        "Please login first",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     finish()
                 }
-            } catch (e: Exception) {
-                Toast.makeText(this@CashbookReportActivity, "Error loading user data", Toast.LENGTH_SHORT).show()
+            } catch (_: Exception) {
+                Toast.makeText(
+                    this@CashbookReportActivity,
+                    "Error loading user data",
+                    Toast.LENGTH_SHORT
+                ).show()
                 finish()
             }
         }
@@ -136,9 +187,7 @@ class CashbookReportActivity : AppCompatActivity() {
             val result = SupabaseManager.client
                 .from("cashbook_entries")
                 .select {
-                    filter {
-                        eq("user_id", userId)
-                    }
+                    filter { eq("user_id", userId) }
                     order("date", Order.DESCENDING)
                     order("created_at", Order.DESCENDING)
                 }
@@ -148,13 +197,17 @@ class CashbookReportActivity : AppCompatActivity() {
             allEntries.addAll(result)
 
             runOnUiThread {
-                applyFilter(FilterType.ALL) // Apply default filter
-                updateSummary()
+                // Default filter
+                chipAll.isChecked = true
+                applyFilter(FilterType.ALL)
             }
-
         } catch (e: Exception) {
             runOnUiThread {
-                Toast.makeText(this@CashbookReportActivity, "Error loading transactions: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@CashbookReportActivity,
+                    "Error loading transactions: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
@@ -162,38 +215,52 @@ class CashbookReportActivity : AppCompatActivity() {
     private fun applyFilter(filterType: FilterType) {
         filteredEntries.clear()
 
-        val calendar = Calendar.getInstance()
-        val today = dateFormatter.format(calendar.time)
+        val todayCal = Calendar.getInstance()
+        val todayIso = iso.format(todayCal.time)
 
-        // Get start of week (Monday)
-        calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-        val weekStart = dateFormatter.format(calendar.time)
+        // Start of week (Monday)
+        val weekCal = Calendar.getInstance().apply {
+            firstDayOfWeek = Calendar.MONDAY
+            set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+            // Normalize to today’s date zone at 00:00
+        }
+        val weekStartIso = iso.format(weekCal.time)
 
-        // Get start of month
-        calendar.time = Date()
-        calendar.set(Calendar.DAY_OF_MONTH, 1)
-        val monthStart = dateFormatter.format(calendar.time)
+        // Start of month
+        val monthCal = Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_MONTH, 1)
+        }
+        val monthStartIso = iso.format(monthCal.time)
 
         when (filterType) {
-            FilterType.ALL -> {
-                filteredEntries.addAll(allEntries)
-            }
-            FilterType.TODAY -> {
-                filteredEntries.addAll(allEntries.filter { it.date == today })
-            }
-            FilterType.THIS_WEEK -> {
-                filteredEntries.addAll(allEntries.filter { it.date >= weekStart })
-            }
-            FilterType.THIS_MONTH -> {
-                filteredEntries.addAll(allEntries.filter { it.date >= monthStart })
-            }
-            FilterType.INCOME_ONLY -> {
-                filteredEntries.addAll(allEntries.filter { it.type == "IN" })
-            }
-            FilterType.EXPENSE_ONLY -> {
-                filteredEntries.addAll(allEntries.filter { it.type == "OUT" })
-            }
+            FilterType.ALL -> filteredEntries.addAll(allEntries)
+
+            FilterType.TODAY -> filteredEntries.addAll(
+                allEntries.filter { it.date == todayIso }
+            )
+
+            FilterType.THIS_WEEK -> filteredEntries.addAll(
+                allEntries.filter { it.date >= weekStartIso && it.date <= todayIso }
+            )
+
+            FilterType.THIS_MONTH -> filteredEntries.addAll(
+                allEntries.filter { it.date >= monthStartIso && it.date <= todayIso }
+            )
+
+            FilterType.INCOME_ONLY -> filteredEntries.addAll(
+                allEntries.filter { it.type == "IN" }
+            )
+
+            FilterType.EXPENSE_ONLY -> filteredEntries.addAll(
+                allEntries.filter { it.type == "OUT" }
+            )
         }
+
+        // Keep newest on top (just in case)
+        filteredEntries.sortWith(
+            compareByDescending<CashbookEntry> { it.date }
+                .thenByDescending { it.createdAt ?: "" }
+        )
 
         reportAdapter.notifyDataSetChanged()
         updateEmptyState()
@@ -201,19 +268,15 @@ class CashbookReportActivity : AppCompatActivity() {
     }
 
     private fun updateSummary() {
-        var totalIncome = 0.0
-        var totalExpense = 0.0
+        var income = 0.0
+        var expense = 0.0
 
-        filteredEntries.forEach { entry ->
-            if (entry.type == "IN") {
-                totalIncome += entry.amount
-            } else {
-                totalExpense += entry.amount
-            }
+        filteredEntries.forEach { e ->
+            if (e.type == "IN") income += e.amount else expense += e.amount
         }
 
-        totalIncomeAmount.text = "₹ ${String.format("%.0f", totalIncome)}"
-        totalExpenseAmount.text = "₹ ${String.format("%.0f", totalExpense)}"
+        totalIncomeAmount.text = currency.format(income)
+        totalExpenseAmount.text = currency.format(expense)
     }
 
     private fun updateEmptyState() {

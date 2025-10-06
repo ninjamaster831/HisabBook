@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/gradient_background"
+    android:fitsSystemWindows="false"
     tools:context=".Staff.StaffConfigurationActivity">
 
     <!-- APP BAR -->
@@ -14,7 +17,7 @@
         android:layout_height="wrap_content"
         android:background="@drawable/gradient_green"
         android:elevation="8dp"
-        android:fitsSystemWindows="true"
+        android:fitsSystemWindows="false"
         android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar">
 
         <androidx.appcompat.widget.Toolbar
@@ -50,12 +53,14 @@
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
+            android:id="@+id/content"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -137,6 +142,7 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_change"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="wrap_content"
                         android:layout_height="40dp"
                         android:minWidth="0dp"
@@ -148,8 +154,7 @@
                         app:backgroundTint="@android:color/transparent"
                         app:cornerRadius="20dp"
                         app:strokeColor="@color/hisab_green"
-                        app:strokeWidth="2dp"
-                        style="@style/Widget.Material3.Button.OutlinedButton" />
+                        app:strokeWidth="2dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -178,40 +183,42 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
                         android:hint="Staff Name"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                         app:boxCornerRadiusBottomEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
                         app:boxCornerRadiusTopStart="12dp"
                         app:boxStrokeColor="@color/hisab_green"
-                        app:hintTextColor="@color/hisab_green"
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                        app:hintTextColor="@color/hisab_green">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_manual_name"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="textPersonName"
-                            android:padding="16dp" />
+                            android:padding="16dp"
+                            android:imeOptions="actionNext" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Phone Number"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                         app:boxCornerRadiusBottomEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
                         app:boxCornerRadiusTopStart="12dp"
                         app:boxStrokeColor="@color/hisab_green"
-                        app:hintTextColor="@color/hisab_green"
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                        app:hintTextColor="@color/hisab_green">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_manual_phone"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="phone"
-                            android:padding="16dp" />
+                            android:padding="16dp"
+                            android:imeOptions="actionDone" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -521,6 +528,7 @@
                     android:layout_height="wrap_content"
                     android:layout_margin="16dp"
                     android:hint="Monthly Salary Amount"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     app:boxCornerRadiusBottomEnd="12dp"
                     app:boxCornerRadiusBottomStart="12dp"
                     app:boxCornerRadiusTopEnd="12dp"
@@ -530,19 +538,19 @@
                     app:helperTextTextColor="#666666"
                     app:hintTextColor="@color/hisab_green"
                     app:prefixText="₹ "
-                    app:prefixTextColor="@color/hisab_green"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                    app:prefixTextColor="@color/hisab_green">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_salary_amount"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="numberDecimal"
-                        android:padding="16dp" />
+                        android:padding="16dp"
+                        android:imeOptions="actionDone" />
                 </com.google.android.material.textfield.TextInputLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Business Permissions -->
+            <!-- BUSINESS PERMISSIONS -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -630,7 +638,7 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Enhanced Floating Save Button -->
+    <!-- Enhanced Floating Save Button (dodges inset edges) -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/btn_save"
         android:layout_width="wrap_content"
@@ -645,5 +653,6 @@
         app:backgroundTint="@color/hisab_green"
         app:icon="@drawable/ic_save"
         app:iconTint="@android:color/white"
+        app:layout_dodgeInsetEdges="bottom"
         app:rippleColor="@color/hisab_green_dark" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

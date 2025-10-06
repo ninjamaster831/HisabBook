@@ -113,7 +113,7 @@
     <color name="hisab_green_medium">#27B05E</color>
     <color name="hisab_green_dark">#1D8D4A</color>
     <color name="hisab_green_light">#CFF4DF</color>
-
+    <color name="outline_variant">#E0E0E0</color>
     <!-- Surfaces -->
     <color name="date_picker_background">#FFF8FFFD</color>
 
@@ -121,6 +121,11 @@
     <color name="on_success">#FFFFFF</color>
     <color name="on_success_container">#1B5E20</color>
 
+    <color name="hsb_background">#F5F7FA</color>
+    <color name="hsb_accent_green">#2E7D32</color>
 
+    <!-- Chip Background Selector -->
+    <color name="chip_selected">#673AB7</color>
+    <color name="chip_unselected">#F0F0F0</color>
 
 </resources>

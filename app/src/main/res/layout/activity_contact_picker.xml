@@ -1,37 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="false"
     tools:context=".Staff.ContactPickerActivity">
 
+    <!-- App Bar -->
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+        android:background="?attr/colorPrimary"
+        app:liftOnScroll="true">
 
-        <androidx.appcompat.widget.Toolbar
+        <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
+            android:background="@android:color/transparent"
+            app:titleTextColor="@android:color/white"
+            app:navigationIconTint="@android:color/white"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
-
     </com.google.android.material.appbar.AppBarLayout>
 
     <LinearLayout
+        android:id="@+id/content_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <!-- Search Layout -->
+        <!-- Search -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="16dp"
-            app:cardCornerRadius="24dp"
+            app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
             app:strokeColor="@color/colorPrimary"
             app:strokeWidth="1dp">
@@ -40,14 +48,17 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:padding="12dp">
+                android:paddingStart="12dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:gravity="center_vertical">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
                     android:src="@drawable/ic_search"
-                    android:layout_gravity="center_vertical"
-                    android:layout_marginStart="8dp" />
+                    android:layout_marginStart="4dp" />
 
                 <EditText
                     android:id="@+id/et_search"
@@ -57,23 +68,22 @@
                     android:hint="Search Staff Name from your Contacts"
                     android:background="@null"
                     android:padding="8dp"
+                    android:imeOptions="actionSearch"
+                    android:singleLine="true"
                     android:textSize="16sp" />
 
                 <ImageButton
                     android:id="@+id/btn_clear_search"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_close"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:layout_gravity="center_vertical"
-                    android:layout_marginEnd="8dp"
+                    android:src="@drawable/ic_close"
+                    android:contentDescription="clear_text"
                     android:visibility="gone" />
-
             </LinearLayout>
-
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Add New Staff Button -->
+        <!-- Add New Staff -->
         <LinearLayout
             android:id="@+id/btn_add_new_staff"
             android:layout_width="match_parent"
@@ -82,7 +92,8 @@
             android:padding="16dp"
             android:background="?attr/selectableItemBackground"
             android:layout_marginHorizontal="16dp"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="8dp"
+            android:gravity="center_vertical">
 
             <FrameLayout
                 android:layout_width="48dp"
@@ -94,21 +105,19 @@
                     android:background="@drawable/dashed_circle" />
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
                     android:src="@drawable/ic_add"
                     android:layout_gravity="center"
                     app:tint="@color/colorPrimary" />
-
             </FrameLayout>
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
                 android:layout_marginStart="16dp"
-                android:layout_gravity="center_vertical">
+                android:layout_weight="1"
+                android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -125,48 +134,40 @@
                     android:textSize="14sp"
                     android:textColor="@android:color/darker_gray"
                     android:layout_marginTop="2dp" />
-
             </LinearLayout>
 
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
                 android:src="@drawable/ic_arrow_forward"
-                android:layout_gravity="center_vertical"
                 app:tint="@color/colorPrimary" />
-
         </LinearLayout>
 
-        <!-- Alphabet Index -->
-        <LinearLayout
+        <!-- Alphabet Index (auto-filled A–Z) -->
+        <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="8dp">
+            android:overScrollMode="never"
+            android:scrollbars="none">
 
-            <TextView
+            <LinearLayout
+                android:id="@+id/alphabet_index"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="A"
-                android:textSize="12sp"
-                android:textColor="@android:color/darker_gray"
-                android:layout_marginEnd="8dp" />
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="6dp" />
+        </HorizontalScrollView>
 
-            <!-- Add more alphabet letters as needed -->
-
-        </LinearLayout>
-
-        <!-- Progress Bar -->
+        <!-- Progress / Empty states -->
         <ProgressBar
             android:id="@+id/progress_bar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="24dp"
             android:visibility="gone" />
 
-        <!-- No Contacts Message -->
         <TextView
             android:id="@+id/tv_no_contacts"
             android:layout_width="wrap_content"
@@ -175,10 +176,10 @@
             android:textSize="16sp"
             android:textColor="@android:color/darker_gray"
             android:layout_gravity="center"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="24dp"
             android:visibility="gone" />
 
-        <!-- Contacts List -->
+        <!-- List -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_view_contacts"
             android:layout_width="match_parent"
@@ -187,7 +188,5 @@
             android:layout_marginHorizontal="16dp"
             android:layout_marginBottom="16dp"
             tools:listitem="@layout/item_contact" />
-
     </LinearLayout>
-
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

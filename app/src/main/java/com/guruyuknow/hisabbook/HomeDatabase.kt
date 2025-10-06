@@ -13,6 +13,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import java.text.ParseException
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 class HomeDatabase {
@@ -35,7 +37,6 @@ class HomeDatabase {
         // Produce a stable Long id from a String (for Transaction.id which is Long)
         private fun stableIdFromString(s: String?): Long {
             if (s.isNullOrBlank()) return System.currentTimeMillis()
-            // 64-bit stable hash
             var h = 1125899906842597L
             for (ch in s) h = 31L * h + ch.code
             return h
@@ -43,8 +44,8 @@ class HomeDatabase {
 
         private fun mapTypeToTransactionType(type: String?): TransactionType {
             return when (type?.uppercase(Locale.ROOT)) {
-                "INCOME" -> TransactionType.INCOME
-                "EXPENSE" -> TransactionType.EXPENSE
+                "IN", "INCOME" -> TransactionType.INCOME
+                "OUT", "EXPENSE" -> TransactionType.EXPENSE
                 "SALE" -> TransactionType.SALE
                 "PURCHASE" -> TransactionType.PURCHASE
                 "LOAN_GIVEN" -> TransactionType.LOAN_GIVEN
@@ -59,20 +60,24 @@ class HomeDatabase {
     suspend fun loadDashboardData(userId: String): Result<DashboardData> {
         return try {
             withContext(Dispatchers.IO) {
-                val today = getTodayStartTimestamp()
-                val startOfMonth = getStartOfMonthTimestamp()
-                val currentTime = System.currentTimeMillis()
+                // Use string dates (yyyy-MM-dd) everywhere for cashbook queries
+                val today = LocalDate.now()
+                val todayStr = today.format(DateTimeFormatter.ISO_DATE) // e.g. "2025-10-02"
+                val startOfMonthStr = today.withDayOfMonth(1).format(DateTimeFormatter.ISO_DATE)
+                val endDateStr = today.format(DateTimeFormatter.ISO_DATE) // up to today
+
+                Log.d(TAG, "loadDashboardData(): today=$todayStr, month=$startOfMonthStr..$endDateStr")
 
                 val dashboard = coroutineScope {
-                    val todayIncomeDef            = async { getTodayIncome(userId, today, currentTime) }
-                    val todayExpensesDef          = async { getTodayExpenses(userId, today, currentTime) }
-                    val monthlyIncomeDef          = async { getMonthlyIncome(userId, startOfMonth, currentTime) }
-                    val monthlyExpensesDef        = async { getMonthlyExpenses(userId, startOfMonth, currentTime) }
-                    val todaySalesDef             = async { getTodaySales(userId, today, currentTime) }
-                    val monthlySalesDef           = async { getMonthlySales(userId, startOfMonth, currentTime) }
-                    val monthlyPurchasesDef       = async { getMonthlyPurchases(userId, startOfMonth, currentTime) }
+                    val todayIncomeDef            = async { getTodayIncome(userId, todayStr) }
+                    val todayExpensesDef          = async { getTodayExpenses(userId, todayStr) }
+                    val monthlyIncomeDef          = async { getMonthlyIncome(userId, startOfMonthStr, endDateStr) }
+                    val monthlyExpensesDef        = async { getMonthlyExpenses(userId, startOfMonthStr, endDateStr) }
+                    val todaySalesDef             = async { getTodaySales(userId, todayStr) }
+                    val monthlySalesDef           = async { getMonthlySales(userId, startOfMonthStr, endDateStr) }
+                    val monthlyPurchasesDef       = async { getMonthlyPurchases(userId, startOfMonthStr, endDateStr) }
                     val activeStaffCountDef       = async { getActiveStaffCount(userId) }
-                    val monthlyStaffExpensesDef   = async { getMonthlyStaffExpenses(userId, startOfMonth, currentTime) }
+                    val monthlyStaffExpensesDef   = async { getMonthlyStaffExpenses(userId, startOfMonthStr, endDateStr) }
                     val totalLoansGivenDef        = async { getTotalLoansGiven(userId) }
                     val totalLoansReceivedDef     = async { getTotalLoansReceived(userId) }
                     val pendingCollectionsDef     = async { getPendingCollections(userId) }
@@ -104,91 +109,91 @@ class HomeDatabase {
         }
     }
 
-
     // ==================== CASHBOOK SUMMARIES ====================
 
-    private suspend fun getTodayIncome(userId: String, startTime: Long, endTime: Long): Double {
+    // Uses date = "yyyy-MM-dd" and type "IN"
+    private suspend fun getTodayIncome(userId: String, todayDateStr: String): Double {
         return try {
-            val todayDateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(startTime))
-
-            val result = SupabaseManager.client.from("cashbook_entries")
+            val rows = SupabaseManager.client.from("cashbook_entries")
                 .select {
                     filter {
                         eq("user_id", userId)
-                        eq("type", "INCOME")
-                        eq("date", todayDateStr)
+                        eq("type", "IN")               // IMPORTANT: match your stored value
+                        eq("date", todayDateStr)       // "2025-10-02"
                     }
                 }
                 .decodeList<CashbookEntry>()
 
-            result.sumOf { it.amount ?: 0.0 }
+            val total = rows.sumOf { it.amount ?: 0.0 }
+            Log.d(TAG, "getTodayIncome($todayDateStr): $total from ${rows.size} rows")
+            total
         } catch (e: Exception) {
             Log.e(TAG, "Error getting today's income: ${e.message}", e)
             0.0
         }
     }
 
-    private suspend fun getTodayExpenses(userId: String, startTime: Long, endTime: Long): Double {
+    // Uses date = "yyyy-MM-dd" and type "OUT"
+    private suspend fun getTodayExpenses(userId: String, todayDateStr: String): Double {
         return try {
-            val todayDateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(startTime))
-
-            val result = SupabaseManager.client.from("cashbook_entries")
+            val rows = SupabaseManager.client.from("cashbook_entries")
                 .select {
                     filter {
                         eq("user_id", userId)
-                        eq("type", "EXPENSE")
+                        eq("type", "OUT")              // IMPORTANT: match your stored value
                         eq("date", todayDateStr)
                     }
                 }
                 .decodeList<CashbookEntry>()
 
-            result.sumOf { it.amount ?: 0.0 }
+            val total = rows.sumOf { it.amount ?: 0.0 }
+            Log.d(TAG, "getTodayExpenses($todayDateStr): $total from ${rows.size} rows")
+            total
         } catch (e: Exception) {
             Log.e(TAG, "Error getting today's expenses: ${e.message}", e)
             0.0
         }
     }
 
-    private suspend fun getMonthlyIncome(userId: String, startTime: Long, endTime: Long): Double {
+    // Monthly: from first day of month to today (inclusive) using string dates
+    private suspend fun getMonthlyIncome(userId: String, startDateStr: String, endDateStr: String): Double {
         return try {
-            val startDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(startTime))
-            val endDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(endTime))
-
-            val result = SupabaseManager.client.from("cashbook_entries")
+            val rows = SupabaseManager.client.from("cashbook_entries")
                 .select {
                     filter {
                         eq("user_id", userId)
-                        eq("type", "INCOME")
-                        gte("date", startDate)
-                        lte("date", endDate)
+                        eq("type", "IN")
+                        gte("date", startDateStr)      // "2025-10-01"
+                        lte("date", endDateStr)        // "2025-10-02"
                     }
                 }
                 .decodeList<CashbookEntry>()
 
-            result.sumOf { it.amount ?: 0.0 }
+            val total = rows.sumOf { it.amount ?: 0.0 }
+            Log.d(TAG, "getMonthlyIncome($startDateStr..$endDateStr): $total from ${rows.size} rows")
+            total
         } catch (e: Exception) {
             Log.e(TAG, "Error getting monthly income: ${e.message}", e)
             0.0
         }
     }
 
-    private suspend fun getMonthlyExpenses(userId: String, startTime: Long, endTime: Long): Double {
+    private suspend fun getMonthlyExpenses(userId: String, startDateStr: String, endDateStr: String): Double {
         return try {
-            val startDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(startTime))
-            val endDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(endTime))
-
-            val result = SupabaseManager.client.from("cashbook_entries")
+            val rows = SupabaseManager.client.from("cashbook_entries")
                 .select {
                     filter {
                         eq("user_id", userId)
-                        eq("type", "EXPENSE")
-                        gte("date", startDate)
-                        lte("date", endDate)
+                        eq("type", "OUT")
+                        gte("date", startDateStr)
+                        lte("date", endDateStr)
                     }
                 }
                 .decodeList<CashbookEntry>()
 
-            result.sumOf { it.amount ?: 0.0 }
+            val total = rows.sumOf { it.amount ?: 0.0 }
+            Log.d(TAG, "getMonthlyExpenses($startDateStr..$endDateStr): $total from ${rows.size} rows")
+            total
         } catch (e: Exception) {
             Log.e(TAG, "Error getting monthly expenses: ${e.message}", e)
             0.0
@@ -197,17 +202,19 @@ class HomeDatabase {
 
     /**
      * NOW RETURNS List<Transaction>
+     * Orders by the ISO "date" column so newest appears first.
      */
     private suspend fun getRecentTransactions(userId: String, limit: Int): List<Transaction> {
         return try {
             val rows = SupabaseManager.client.from("cashbook_entries")
                 .select {
                     filter { eq("user_id", userId) }
-                    order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                    order("date", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
                     limit(limit.toLong())
                 }
                 .decodeList<CashbookEntry>()
 
+            Log.d(TAG, "getRecentTransactions() -> ${rows.size} rows")
             rows.map { it.toTransaction() }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting recent transactions: ${e.message}", e)
@@ -215,59 +222,66 @@ class HomeDatabase {
         }
     }
 
-    // ==================== PURCHASES ====================
+    // ==================== PURCHASES (left as-is; ensure your schema matches) ====================
 
-    private suspend fun getTodaySales(userId: String, startTime: Long, endTime: Long): Double {
+    // If your purchases table stores "purchase_date" as string "yyyy-MM-dd",
+    // change filters to eq("purchase_date", todayStr) / gte-lte on those strings.
+    private suspend fun getTodaySales(userId: String, todayStr: String): Double {
         return try {
-            val result = SupabaseManager.client.from("purchases")
+            val rows = SupabaseManager.client.from("purchases")
                 .select {
                     filter {
                         eq("user_id", userId)
-                        gte("purchase_date", startTime)
-                        lte("purchase_date", endTime)
+                        eq("purchase_date", todayStr) // <-- adjust if your schema differs
                     }
                 }
                 .decodeList<Purchase>()
 
-            result.sumOf { it.totalAmount ?: 0.0 }
+            val total = rows.sumOf { it.totalAmount ?: 0.0 }
+            Log.d(TAG, "getTodaySales($todayStr): $total from ${rows.size} rows")
+            total
         } catch (e: Exception) {
             Log.e(TAG, "Error getting today's sales: ${e.message}", e)
             0.0
         }
     }
 
-    private suspend fun getMonthlySales(userId: String, startTime: Long, endTime: Long): Double {
+    private suspend fun getMonthlySales(userId: String, startDateStr: String, endDateStr: String): Double {
         return try {
-            val result = SupabaseManager.client.from("purchases")
+            val rows = SupabaseManager.client.from("purchases")
                 .select {
                     filter {
                         eq("user_id", userId)
-                        gte("purchase_date", startTime)
-                        lte("purchase_date", endTime)
+                        gte("purchase_date", startDateStr)
+                        lte("purchase_date", endDateStr)
                     }
                 }
                 .decodeList<Purchase>()
 
-            result.sumOf { it.totalAmount ?: 0.0 }
+            val total = rows.sumOf { it.totalAmount ?: 0.0 }
+            Log.d(TAG, "getMonthlySales($startDateStr..$endDateStr): $total from ${rows.size} rows")
+            total
         } catch (e: Exception) {
             Log.e(TAG, "Error getting monthly sales: ${e.message}", e)
             0.0
         }
     }
 
-    private suspend fun getMonthlyPurchases(userId: String, startTime: Long, endTime: Long): Double {
+    private suspend fun getMonthlyPurchases(userId: String, startDateStr: String, endDateStr: String): Double {
         return try {
-            val result = SupabaseManager.client.from("purchases")
+            val rows = SupabaseManager.client.from("purchases")
                 .select {
                     filter {
                         eq("user_id", userId)
-                        gte("purchase_date", startTime)
-                        lte("purchase_date", endTime)
+                        gte("purchase_date", startDateStr)
+                        lte("purchase_date", endDateStr)
                     }
                 }
                 .decodeList<Purchase>()
 
-            result.sumOf { it.totalAmount ?: 0.0 }
+            val total = rows.sumOf { it.totalAmount ?: 0.0 }
+            Log.d(TAG, "getMonthlyPurchases($startDateStr..$endDateStr): $total from ${rows.size} rows")
+            total
         } catch (e: Exception) {
             Log.e(TAG, "Error getting monthly purchases: ${e.message}", e)
             0.0
@@ -294,7 +308,7 @@ class HomeDatabase {
         }
     }
 
-    private suspend fun getMonthlyStaffExpenses(userId: String, startTime: Long, endTime: Long): Double {
+    private suspend fun getMonthlyStaffExpenses(userId: String, startDateStr: String, endDateStr: String): Double {
         return try {
             val staffResult = SupabaseManager.client.from("staff")
                 .select {
@@ -498,42 +512,25 @@ class HomeDatabase {
         }
     }
 
-    // ==================== UTILITY ====================
-
-    private fun getTodayStartTimestamp(): Long {
-        return Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-    }
-
-    private fun getStartOfMonthTimestamp(): Long {
-        return Calendar.getInstance().apply {
-            set(Calendar.DAY_OF_MONTH, 1)
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-    }
-
     // ---------- Mapping: CashbookEntry -> Transaction ----------
 
     private fun CashbookEntry.toTransaction(): Transaction {
         val idLong = stableIdFromString(this.id)
         val amt = this.amount ?: 0.0
         val tType = mapTypeToTransactionType(this.type?.toString())
-        val cat = this.type?.toString() ?: "GENERAL" // basic category fallback
+        val title = when {
+            !this.description.isNullOrBlank() -> this.description!!
+            !this.category.isNullOrBlank() -> this.category!!
+            else -> "Cashbook Entry"
+        }
         val ts = parseDateMillis(this.date) // from "yyyy-MM-dd"; falls back to now
 
         return Transaction(
             id = idLong,
-            description = this.type?.toString() ?: "Cashbook Entry",
+            description = title,
             amount = amt,
             type = tType,
-            category = cat,
+            category = this.category ?: "GENERAL",
             timestamp = ts,
             notes = null
         )

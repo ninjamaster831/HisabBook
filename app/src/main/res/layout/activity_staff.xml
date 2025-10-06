@@ -3,30 +3,30 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="false"
     tools:context=".Staff.StaffActivity">
 
     <!-- App Bar -->
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#6A1B9A"
-        android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
-        android:fitsSystemWindows="true">
+        android:background="?attr/colorPrimary"
+        android:fitsSystemWindows="false"
+        app:statusBarForeground="?attr/colorPrimaryVariant"
+        app:liftOnScroll="true">
 
-        <androidx.appcompat.widget.Toolbar
+        <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="#6A1B9A"
-            android:contentInsetStartWithNavigation="0dp"
-            android:paddingTop="0dp"
-            android:paddingBottom="0dp"
+            android:background="@android:color/transparent"
             app:titleTextColor="@android:color/white"
             app:navigationIconTint="@android:color/white"
-            app:popupTheme="@style/ThemeOverlay.MaterialComponents.Light" />
-
+            app:popupTheme="@style/ThemeOverlay.MaterialComponents.Light"/>
     </com.google.android.material.appbar.AppBarLayout>
 
     <!-- EMPTY STATE -->
@@ -88,7 +88,7 @@
             android:layout_height="wrap_content"
             android:layout_margin="16dp"
             app:cardCornerRadius="16dp"
-            app:cardElevation="2dp">
+            app:cardElevation="3dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -324,7 +324,7 @@
             tools:listitem="@layout/item_staff" />
     </LinearLayout>
 
-    <!-- FAB -->
+    <!-- FAB (dodges system bars) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add_staff"
         android:layout_width="wrap_content"
@@ -333,7 +333,8 @@
         android:layout_margin="16dp"
         android:contentDescription="@string/add"
         android:src="@drawable/ic_add_person"
-        app:backgroundTint="?attr/colorPrimary" />
+        app:backgroundTint="?attr/colorPrimary"
+        app:layout_dodgeInsetEdges="bottom" />
 
     <!-- LOADING OVERLAY -->
     <FrameLayout

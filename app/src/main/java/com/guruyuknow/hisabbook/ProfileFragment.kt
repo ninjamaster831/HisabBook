@@ -2,25 +2,38 @@ package com.guruyuknow.hisabbook
 
 import android.app.Activity
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.GridLayout
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.core.widget.ImageViewCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.CircleCrop
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.guruyuknow.hisabbook.Bills.BillsActivity
 import com.guruyuknow.hisabbook.Staff.StaffActivity
 import com.guruyuknow.hisabbook.databinding.FragmentProfileBinding
 import kotlinx.coroutines.launch
+
+data class Feature(
+    val title: String,
+    val icon: Int,
+    val color: String,
+    val activity: Class<*>
+)
 
 class ProfileFragment : Fragment() {
 
@@ -68,51 +81,136 @@ class ProfileFragment : Fragment() {
     private fun setupUI() {
         binding.apply {
             businessNameText.text = "My Business"
-            profileStrengthText.text = "Weak"
-            profileStrengthPercentage.text = "0%"
             profileInitials.text = "MB"
+            emailText.text = "business@email.com"
+        }
+    }
+
+    private fun updateUI(user: User) {
+        binding.apply {
+            businessNameText.text = user.fullName ?: user.email ?: "My Business"
+            emailText.text = user.email ?: ""
+
+            val avatarUrl = resolveAvatarUrl(user.avatarUrl)
+
+            if (!avatarUrl.isNullOrBlank()) {
+                profileInitials.visibility = View.GONE
+                profileImage.visibility = View.VISIBLE
+
+                Glide.with(this@ProfileFragment)
+                    .load(avatarUrl)
+                    .transform(CircleCrop())
+                    .placeholder(R.drawable.ic_profile)
+                    .error(R.drawable.ic_profile)
+                    .into(profileImage)
+            } else {
+                profileImage.visibility = View.GONE
+                profileInitials.visibility = View.VISIBLE
+
+                val initials = when {
+                    !user.fullName.isNullOrEmpty() ->
+                        user.fullName.split(" ").take(2).joinToString("") { it.first().toString().uppercase() }
+                    !user.email.isNullOrEmpty() ->
+                        user.email.first().toString().uppercase()
+                    else -> "MB"
+                }
+                profileInitials.text = initials
+            }
         }
     }
 
     private fun setupClickListeners() {
         binding.apply {
+            // Edit button click - now handles both badge and FAB
             editButton.setOnClickListener {
                 showEditProfileDialog()
             }
-            featureCardsGrid.getChildAt(2)?.setOnClickListener {
-                val intent = Intent(requireContext(), CashbookActivity::class.java)
-                startActivity(intent)
+
+            editBadge.setOnClickListener {
+                showEditProfileDialog()
             }
-            featureCardsGrid.getChildAt(1)?.setOnClickListener {
-                val intent = Intent(requireContext(), StaffActivity::class.java)
-                startActivity(intent)
-            }
-            featureCardsGrid.getChildAt(0)?.setOnClickListener {
-                val intent = Intent(requireContext(), BillsActivity::class.java)
-                startActivity(intent)
-            }
-            featureCardsGrid.getChildAt(3)?.setOnClickListener {
-                val intent = Intent(requireContext(), ShopActivity::class.java)
-                startActivity(intent)
-            }
-            featureCardsGrid.getChildAt(4)?.setOnClickListener {
-                val intent = Intent(requireContext(), LoanTrackerActivity::class.java)
-                startActivity(intent)
-            }
+
+            // Setup feature cards
+            setupFeatureCards()
+
+            // Settings menu items
             settingsLayout.setOnClickListener {
                 val intent = Intent(requireContext(), SettingsActivity::class.java)
                 startActivity(intent)
             }
+
             helpSupportLayout.setOnClickListener {
-                // TODO: Navigate to help & support
+                Toast.makeText(requireContext(), "Help & Support coming soon", Toast.LENGTH_SHORT).show()
             }
+
             aboutUsLayout.setOnClickListener {
-                // TODO: Navigate to about us
+                Toast.makeText(requireContext(), "About Us coming soon", Toast.LENGTH_SHORT).show()
             }
+
             logoutButton.setOnClickListener {
                 handleLogout()
             }
         }
+    }
+
+    private fun setupFeatureCards() {
+        val features = listOf(
+            Feature("Bills", R.drawable.ic_bill, "#EC4899", BillsActivity::class.java),
+            Feature("Staff", R.drawable.ic_staff, "#8B5CF6", StaffActivity::class.java),
+            Feature("Checkbook", R.drawable.ic_book, "#6366F1", CashbookActivity::class.java),
+            Feature("Shop", R.drawable.ic_collection, "#F97316", ShopActivity::class.java),
+            Feature("Collections", R.drawable.ic_collection, "#10B981", LoanTrackerActivity::class.java)
+        )
+
+        binding.featureCardsGrid.removeAllViews()
+
+        val margin = dp(8)
+
+        features.forEach { feature ->
+            val card = LayoutInflater.from(requireContext())
+                .inflate(R.layout.item_feature_card_modern, binding.featureCardsGrid, false) as MaterialCardView
+
+            val lp = GridLayout.LayoutParams().apply {
+                width = 0
+                height = ViewGroup.LayoutParams.WRAP_CONTENT
+                columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                setMargins(margin, margin, margin, margin)
+            }
+            card.layoutParams = lp
+
+            // Bind views
+            val icon = card.findViewById<ImageView>(R.id.featureIcon)
+            val title = card.findViewById<TextView>(R.id.featureTitle)
+            val iconBg = card.findViewById<MaterialCardView>(R.id.iconBackground)
+
+            // Colors
+            val base = Color.parseColor(feature.color)
+            val soft = softPastel(base, 0.88f)
+
+            icon.setImageResource(feature.icon)
+            ImageViewCompat.setImageTintList(icon, ColorStateList.valueOf(base))
+            iconBg.setCardBackgroundColor(soft)
+            title.text = feature.title
+
+            card.setOnClickListener {
+                startActivity(Intent(requireContext(), feature.activity))
+            }
+
+            binding.featureCardsGrid.addView(card)
+        }
+    }
+
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).toInt()
+
+    private fun softPastel(color: Int, strength: Float): Int {
+        val r = Color.red(color)
+        val g = Color.green(color)
+        val b = Color.blue(color)
+        val nr = (r + (255 - r) * strength).toInt().coerceIn(0, 255)
+        val ng = (g + (255 - g) * strength).toInt().coerceIn(0, 255)
+        val nb = (b + (255 - b) * strength).toInt().coerceIn(0, 255)
+        return Color.rgb(nr, ng, nb)
     }
 
     private fun loadUserData() {
@@ -135,50 +233,10 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    /**
-     * Converts a stored path (e.g., "avatars/uid.png") to a full public URL.
-     * If it's already a full URL, returns it as-is.
-     * NOTE: Ensure SupabaseManager.getPublicFileUrl(bucket, path) exists and uses:
-     * supabase.storage.from(bucket).getPublicUrl(path)
-     */
     private fun resolveAvatarUrl(raw: String?): String? {
         if (raw.isNullOrBlank()) return null
         return if (raw.startsWith("http", ignoreCase = true)) raw
         else SupabaseManager.getPublicFileUrl("avatars", raw)
-    }
-
-    private fun updateUI(user: User) {
-        binding.apply {
-            businessNameText.text = user.fullName ?: user.email ?: "My Business"
-
-            val avatarUrl = resolveAvatarUrl(user.avatarUrl)
-
-            if (!avatarUrl.isNullOrBlank()) {
-                profileInitials.visibility = View.GONE
-                profileImage.visibility = View.VISIBLE
-
-                Glide.with(this@ProfileFragment)
-                    .load(avatarUrl)
-                    .transform(CircleCrop())
-                    .placeholder(R.drawable.ic_profile) // optional
-                    .error(R.drawable.ic_edit)       // optional
-                    .into(profileImage)
-            } else {
-                profileImage.visibility = View.GONE
-                profileInitials.visibility = View.VISIBLE
-
-                val initials = when {
-                    !user.fullName.isNullOrEmpty() ->
-                        user.fullName.split(" ").take(2).joinToString("") { it.first().toString().uppercase() }
-                    !user.email.isNullOrEmpty() ->
-                        user.email.first().toString().uppercase()
-                    else -> "MB"
-                }
-                profileInitials.text = initials
-            }
-
-            updateProfileStrength(user)
-        }
     }
 
     private fun showEditProfileDialog() {
@@ -193,7 +251,7 @@ class ProfileFragment : Fragment() {
 
         val nameInput = dialogView.findViewById<TextInputEditText>(R.id.nameInput)
         val profileImageView = dialogView.findViewById<ImageView>(R.id.dialogProfileImage)
-        val profileInitialsView = dialogView.findViewById<android.widget.TextView>(R.id.dialogProfileInitials)
+        val profileInitialsView = dialogView.findViewById<TextView>(R.id.dialogProfileInitials)
         val changePhotoButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.changePhotoButton)
 
         // Pre-fill current data
@@ -263,7 +321,6 @@ class ProfileFragment : Fragment() {
                     println("Update result success: ${result.isSuccess}")
 
                     if (result.isSuccess) {
-                        // Ensure avatarUrl is a full URL before updating UI
                         val updated = result.getOrNull()
                         val fixed = updated?.copy(avatarUrl = resolveAvatarUrl(updated.avatarUrl))
                         currentUser = fixed ?: updated
@@ -280,7 +337,6 @@ class ProfileFragment : Fragment() {
                     println("Updated user is null!")
                 }
 
-                // Reset selected image
                 selectedImageUri = null
                 currentEditDialog = null
 
@@ -292,48 +348,25 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun updateProfileStrength(user: User) {
-        var completionScore = 0
-        val totalFields = 4
-
-        if (!user.email.isNullOrEmpty()) completionScore++
-        if (!user.fullName.isNullOrEmpty()) completionScore++
-        if (!user.avatarUrl.isNullOrEmpty()) completionScore++
-        completionScore++ // For having an account
-
-        val percentage = (completionScore * 100) / totalFields
-        val strength = when {
-            percentage <= 30 -> "Weak"
-            percentage <= 70 -> "Medium"
-            else -> "Strong"
-        }
-
-        binding.apply {
-            profileStrengthText.text = strength
-            profileStrengthPercentage.text = "$percentage%"
-
-            val color = when (strength) {
-                "Weak" -> android.graphics.Color.parseColor("#F44336")
-                "Medium" -> android.graphics.Color.parseColor("#FF9800")
-                else -> android.graphics.Color.parseColor("#4CAF50")
-            }
-            profileStrengthText.setTextColor(color)
-            profileStrengthPercentage.setTextColor(color)
-        }
-    }
-
     private fun handleLogout() {
-        lifecycleScope.launch {
-            try {
-                SupabaseManager.signOut()
-                val intent = Intent(requireContext(), LoginActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                startActivity(intent)
-                requireActivity().finish()
-            } catch (e: Exception) {
-                // Handle logout error
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Logout")
+            .setMessage("Are you sure you want to logout?")
+            .setPositiveButton("Logout") { _, _ ->
+                lifecycleScope.launch {
+                    try {
+                        SupabaseManager.signOut()
+                        val intent = Intent(requireContext(), LoginActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        startActivity(intent)
+                        requireActivity().finish()
+                    } catch (e: Exception) {
+                        Toast.makeText(requireContext(), "Error logging out", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
-        }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     override fun onDestroyView() {

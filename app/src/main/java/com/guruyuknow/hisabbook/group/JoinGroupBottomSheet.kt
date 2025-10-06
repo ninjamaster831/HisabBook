@@ -11,6 +11,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.textfield.TextInputEditText
 import com.guruyuknow.hisabbook.R
+
 class JoinGroupBottomSheet : BottomSheetDialogFragment() {
 
     private val viewModel: GroupExpenseViewModel by activityViewModels()
@@ -41,22 +42,25 @@ class JoinGroupBottomSheet : BottomSheetDialogFragment() {
         btnJoin.setOnClickListener {
             val code = codeInput.text?.toString().orEmpty().trim().uppercase()
             val name = nameInput.text?.toString().orEmpty().trim().ifEmpty { "User" }
-            val phone = phoneInput.text?.toString().orEmpty().trim()
 
             if (code.length != 6) {
                 codeInput.error = "Enter a valid 6-character code"
                 return@setOnClickListener
             }
-            if (phone.isEmpty()) {
-                phoneInput.error = "Enter phone number"
-                return@setOnClickListener
-            }
 
             codeInput.error = null
-            phoneInput.error = null
 
-            // ✅ Pass phone instead of UID
-            viewModel.joinGroupByCodeWithPhone(code, name, phone)
+            // ✅ OPTION 1: Use authenticated user ID (recommended)
+            viewModel.joinGroupByCode(code, name)
+
+            // ✅ OPTION 2: Keep phone-based if you want to allow non-auth users
+            // Uncomment below and keep phone input field:
+            // val phone = phoneInput.text?.toString().orEmpty().trim()
+            // if (phone.isEmpty()) {
+            //     phoneInput.error = "Enter phone number"
+            //     return@setOnClickListener
+            // }
+            // viewModel.joinGroupByCodeWithPhone(code, name, phone)
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { loading ->
@@ -67,7 +71,14 @@ class JoinGroupBottomSheet : BottomSheetDialogFragment() {
         viewModel.joinResult.observe(viewLifecycleOwner) { res ->
             if (res == null) return@observe
             if (res.isSuccess) {
-                Toast.makeText(requireContext(), "Joined group!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Joined group successfully!", Toast.LENGTH_SHORT).show()
+
+                // ✅ Explicitly reload and reapply filter
+                viewModel.loadAllGroups()
+
+                // Clear the result to avoid re-triggering
+                viewModel.clearJoinResult()
+
                 dismiss()
             } else {
                 val msg = res.exceptionOrNull()?.message ?: "Failed to join"

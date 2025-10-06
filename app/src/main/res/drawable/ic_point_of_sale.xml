@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- POS body -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M5,4h14c1.1,0 2,0.9 2,2v10c0,1.1 -0.9,2 -2,2H5c-1.1,0 -2,-0.9 -2,-2V6c0,-1.1 0.9,-2 2,-2z"/>
+    <!-- Screen -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M7,7h10v4H7z"/>
+    <!-- Key row -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M7,13h4v2H7z"/>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12.5,13H17v2h-4.5z"/>
+    <!-- Pay button -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M10,16h7v2h-7z"/>
+</vector>

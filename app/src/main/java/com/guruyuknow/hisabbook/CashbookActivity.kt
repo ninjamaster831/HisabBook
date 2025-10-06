@@ -1,67 +1,33 @@
 package com.guruyuknow.hisabbook
 
-import android.annotation.SuppressLint
 import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.widget.EditText
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.launch
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import java.text.SimpleDateFormat
-import java.util.*
-
-@SuppressLint("UnsafeOptInUsageError")
-@Serializable
-data class CashbookEntry(
-    val id: String? = null,
-    @SerialName("user_id") val userId: String,
-    val amount: Double,
-    val type: String, // "IN" or "OUT"
-    @SerialName("payment_method") val paymentMethod: String, // "CASH" or "ONLINE"
-    val description: String?,
-    val category: String?,
-    val date: String, // ISO date string
-    @SerialName("created_at") val createdAt: String? = null,
-    @SerialName("updated_at") val updatedAt: String? = null,
-    @SerialName("category_id") val categoryId: String? = null,
-    @SerialName("payment_method_id") val paymentMethodId: String? = null
-) {
-    init {
-        // Client-side validation to match database constraints
-        require(amount > 0) { "Amount must be greater than 0" }
-        require(type in listOf("IN", "OUT")) { "Type must be 'IN' or 'OUT'" }
-        require(category != null || categoryId != null) {
-            "Either category or categoryId must be provided"
-        }
-    }
-
-    companion object {
-        const val TYPE_IN = "IN"
-        const val TYPE_OUT = "OUT"
-        const val PAYMENT_METHOD_CASH = "CASH"
-        const val PAYMENT_METHOD_ONLINE = "ONLINE"
-    }
-}
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import android.widget.ImageView
 
 class CashbookActivity : AppCompatActivity() {
 
@@ -79,6 +45,12 @@ class CashbookActivity : AppCompatActivity() {
     private lateinit var inButton: MaterialButton
     private lateinit var entriesRecyclerView: RecyclerView
     private lateinit var emptyStateLayout: LinearLayout
+    private lateinit var bottomBar: LinearLayout
+
+    // Insets state
+    private var baseRecyclerBottomPadding = 0
+    private var baseBottomBarBottomPadding = 0
+    private var lastSystemBarBottomInset = 0
 
     // Data
     private val entries = mutableListOf<CashbookEntry>()
@@ -95,6 +67,7 @@ class CashbookActivity : AppCompatActivity() {
         setContentView(R.layout.activity_cashbook)
 
         initViews()
+        applyWindowInsets()
         setupRecyclerView()
         setupClickListeners()
         loadCurrentUser()
@@ -113,41 +86,79 @@ class CashbookActivity : AppCompatActivity() {
         outButton = findViewById(R.id.outButton)
         inButton = findViewById(R.id.inButton)
         emptyStateLayout = findViewById(R.id.emptyStateLayout)
-
-        // Add RecyclerView to your layout (you'll need to add this to XML)
         entriesRecyclerView = findViewById(R.id.entriesRecyclerView)
+        bottomBar = findViewById(R.id.bottomBar)
+
+        baseRecyclerBottomPadding = entriesRecyclerView.paddingBottom
+        baseBottomBarBottomPadding = bottomBar.paddingBottom
+    }
+
+    /**
+     * Keep header clear of status bar; lift list above bottom bar and gestural nav.
+     * Works for both gesture navigation and 3-button navigation.
+     */
+    private fun applyWindowInsets() {
+        // Apply to the whole content so we can adjust header spacer and bottom paddings.
+        val content = findViewById<View>(android.R.id.content)
+
+        ViewCompat.setOnApplyWindowInsetsListener(content) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            lastSystemBarBottomInset = bars.bottom
+
+            // Status bar spacer height (keep at least 24dp as per your layout)
+            findViewById<View>(R.id.statusBarSpace)?.let { spacer ->
+                val min24 = resources.getDimensionPixelSize(R.dimen.spacing_24dp)
+                spacer.layoutParams = spacer.layoutParams.apply {
+                    height = maxOf(min24, bars.top)
+                }
+                spacer.requestLayout()
+            }
+
+            // Lift the bottom bar above gesture nav
+            bottomBar.updatePadding(
+                bottom = baseBottomBarBottomPadding + bars.bottom
+            )
+
+            // Ensure the list clears bottom bar + nav
+            updateRecyclerBottomPadding()
+
+            insets
+        }
+
+
+        // Once the bottom bar knows its height, re-apply padding for the list
+        bottomBar.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            updateRecyclerBottomPadding()
+        }
+    }
+
+    private fun updateRecyclerBottomPadding() {
+        val extra = lastSystemBarBottomInset + bottomBar.height
+        entriesRecyclerView.updatePadding(
+            bottom = baseRecyclerBottomPadding + extra
+        )
     }
 
     private fun setupRecyclerView() {
         entriesAdapter = CashbookEntriesAdapter(entries) { entry ->
-            // Handle entry click (edit/delete)
             showEntryOptionsDialog(entry)
         }
         entriesRecyclerView.layoutManager = LinearLayoutManager(this)
         entriesRecyclerView.adapter = entriesAdapter
+        entriesRecyclerView.clipToPadding = false
     }
 
     private fun setupClickListeners() {
-        backButton.setOnClickListener {
-            finish()
-        }
+        backButton.setOnClickListener { finish() }
 
-        helpButton.setOnClickListener {
-            // Show help dialog
-            showHelpDialog()
-        }
+        helpButton.setOnClickListener { showHelpDialog() }
 
         viewReportButton.setOnClickListener {
-            // Navigate to report screen
             startActivity(Intent(this, CashbookReportActivity::class.java))
         }
-        outButton.setOnClickListener {
-            showAddEntryDialog("OUT")
-        }
 
-        inButton.setOnClickListener {
-            showAddEntryDialog("IN")
-        }
+        outButton.setOnClickListener { showAddEntryDialog(CashbookEntry.TYPE_OUT) }
+        inButton.setOnClickListener { showAddEntryDialog(CashbookEntry.TYPE_IN) }
     }
 
     private fun loadCurrentUser() {
@@ -173,9 +184,7 @@ class CashbookActivity : AppCompatActivity() {
             val result = SupabaseManager.client
                 .from("cashbook_entries")
                 .select {
-                    filter {
-                        eq("user_id", userId)
-                    }
+                    filter { eq("user_id", userId) }
                     order("date", Order.DESCENDING)
                     order("created_at", Order.DESCENDING)
                 }
@@ -189,10 +198,13 @@ class CashbookActivity : AppCompatActivity() {
                 updateBalances()
                 updateEmptyState()
             }
-
         } catch (e: Exception) {
             runOnUiThread {
-                Toast.makeText(this@CashbookActivity, "Error loading entries: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@CashbookActivity,
+                    "Error loading entries: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
@@ -207,27 +219,22 @@ class CashbookActivity : AppCompatActivity() {
         val onlineRadio = dialogView.findViewById<MaterialButton>(R.id.onlineRadio)
         val dateButton = dialogView.findViewById<MaterialButton>(R.id.dateButton)
 
-        var selectedPaymentMethod = "CASH"
+        var selectedPaymentMethod = CashbookEntry.PAYMENT_METHOD_CASH
         var selectedDate = dateFormatter.format(Date())
-
-        // Set initial date
         dateButton.text = displayDateFormatter.format(Date())
 
-        // Payment method selection
         cashRadio.setOnClickListener {
-            selectedPaymentMethod = "CASH"
+            selectedPaymentMethod = CashbookEntry.PAYMENT_METHOD_CASH
             updatePaymentMethodButtons(cashRadio, onlineRadio, true)
         }
-
         onlineRadio.setOnClickListener {
-            selectedPaymentMethod = "ONLINE"
+            selectedPaymentMethod = CashbookEntry.PAYMENT_METHOD_ONLINE
             updatePaymentMethodButtons(cashRadio, onlineRadio, false)
         }
 
-        // Date picker
         dateButton.setOnClickListener {
             val calendar = Calendar.getInstance()
-            val datePickerDialog = DatePickerDialog(
+            DatePickerDialog(
                 this,
                 { _, year, month, dayOfMonth ->
                     calendar.set(year, month, dayOfMonth)
@@ -237,66 +244,76 @@ class CashbookActivity : AppCompatActivity() {
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH)
-            )
-            datePickerDialog.show()
+            ).show()
         }
 
         val dialog = AlertDialog.Builder(this)
-            .setTitle(if (type == "IN") "Add Income" else "Add Expense")
+            .setTitle(if (type == CashbookEntry.TYPE_IN) "Add Income" else "Add Expense")
             .setView(dialogView)
-            .setPositiveButton("Save") { _, _ ->
-                val amount = amountInput.text.toString().toDoubleOrNull()
-                val description = descriptionInput.text.toString().trim()
-                val category = categoryInput.text.toString().trim()
+            .setPositiveButton("Save", null) // we override to avoid auto-dismiss
+            .setNegativeButton("Cancel", null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val amount = amountInput.text?.toString()?.toDoubleOrNull()
+                val description = descriptionInput.text?.toString()?.trim().orEmpty()
+                val category = categoryInput.text?.toString()?.trim()?.ifEmpty { "General" }
 
                 if (amount == null || amount <= 0) {
                     Toast.makeText(this, "Please enter a valid amount", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+                    return@setOnClickListener
                 }
 
-                addCashbookEntry(amount, type, selectedPaymentMethod, description, category, selectedDate)
+                addCashbookEntry(amount, type, selectedPaymentMethod, description,
+                    category.toString(), selectedDate)
+                dialog.dismiss()
             }
-            .setNegativeButton("Cancel", null)
-            .create()
+        }
 
         dialog.show()
     }
 
-    private fun updatePaymentMethodButtons(cashRadio: MaterialButton, onlineRadio: MaterialButton, isCashSelected: Boolean) {
+    private fun updatePaymentMethodButtons(
+        cashRadio: MaterialButton,
+        onlineRadio: MaterialButton,
+        isCashSelected: Boolean
+    ) {
+        val primary = ContextCompat.getColor(this, R.color.colorPrimary)
+        val white = ContextCompat.getColor(this, android.R.color.white)
+        val transparent = ContextCompat.getColor(this, android.R.color.transparent)
+
         if (isCashSelected) {
-            cashRadio.setBackgroundColor(getColor(R.color.colorPrimary))
-            cashRadio.setTextColor(getColor(android.R.color.white))
-            onlineRadio.setBackgroundColor(getColor(android.R.color.transparent))
-            onlineRadio.setTextColor(getColor(R.color.colorPrimary))
+            cashRadio.setBackgroundColor(primary)
+            cashRadio.setTextColor(white)
+            onlineRadio.setBackgroundColor(transparent)
+            onlineRadio.setTextColor(primary)
         } else {
-            onlineRadio.setBackgroundColor(getColor(R.color.colorPrimary))
-            onlineRadio.setTextColor(getColor(android.R.color.white))
-            cashRadio.setBackgroundColor(getColor(android.R.color.transparent))
-            cashRadio.setTextColor(getColor(R.color.colorPrimary))
+            onlineRadio.setBackgroundColor(primary)
+            onlineRadio.setTextColor(white)
+            cashRadio.setBackgroundColor(transparent)
+            cashRadio.setTextColor(primary)
         }
     }
 
-    private fun addCashbookEntry(amount: Double, type: String, paymentMethod: String, description: String, category: String, date: String) {
+    private fun addCashbookEntry(
+        amount: Double,
+        type: String,
+        paymentMethod: String,
+        description: String,
+        category: String,
+        date: String
+    ) {
         Log.d("CashbookActivity", "=== Starting addCashbookEntry ===")
-        Log.d("CashbookActivity", "Parameters - Amount: $amount, Type: $type, PaymentMethod: $paymentMethod")
-        Log.d("CashbookActivity", "Parameters - Description: '$description', Category: '$category', Date: $date")
 
         lifecycleScope.launch {
             try {
-                Log.d("CashbookActivity", "Inside coroutine, checking currentUser...")
                 val userId = currentUser?.id
-
                 if (userId == null) {
-                    Log.e("CashbookActivity", "ERROR: currentUser is null, cannot proceed")
-                    runOnUiThread {
-                        Toast.makeText(this@CashbookActivity, "User not found. Please login again.", Toast.LENGTH_SHORT).show()
-                    }
+                    Toast.makeText(this@CashbookActivity, "User not found. Please login again.", Toast.LENGTH_SHORT).show()
                     return@launch
                 }
 
-                Log.d("CashbookActivity", "User ID: $userId")
-
-                // Create entry object
                 val entry = CashbookEntry(
                     userId = userId,
                     amount = amount,
@@ -307,55 +324,27 @@ class CashbookActivity : AppCompatActivity() {
                     date = date
                 )
 
-                Log.d("CashbookActivity", "Created CashbookEntry object: $entry")
-                Log.d("CashbookActivity", "About to insert entry into Supabase...")
-
-                // Insert into database - Use select() to force return of inserted data
                 val result = SupabaseManager.client
                     .from("cashbook_entries")
-                    .insert(entry) {
-                        // Force return the inserted row
-                        select()
-                    }
+                    .insert(entry) { select() }
                     .decodeSingle<CashbookEntry>()
 
-                Log.d("CashbookActivity", "✅ Successfully inserted entry into database")
-                Log.d("CashbookActivity", "Result from database: $result")
-                Log.d("CashbookActivity", "Current entries list size before adding: ${entries.size}")
-
-                // Add to local list
                 entries.add(0, result)
-                Log.d("CashbookActivity", "Added entry to local list. New size: ${entries.size}")
 
                 runOnUiThread {
-                    Log.d("CashbookActivity", "Updating UI on main thread...")
                     entriesAdapter.notifyItemInserted(0)
-                    Log.d("CashbookActivity", "Notified adapter of item insertion")
-
+                    entriesRecyclerView.scrollToPosition(0)
                     updateBalances()
-                    Log.d("CashbookActivity", "Updated balances")
-
                     updateEmptyState()
-                    Log.d("CashbookActivity", "Updated empty state")
-
                     Toast.makeText(this@CashbookActivity, "Entry added successfully", Toast.LENGTH_SHORT).show()
-                    Log.d("CashbookActivity", "✅ Entry added successfully - UI updated")
                 }
-
             } catch (e: Exception) {
-                Log.e("CashbookActivity", "❌ ERROR in addCashbookEntry: ${e.message}")
-                Log.e("CashbookActivity", "Exception type: ${e.javaClass.simpleName}")
-                Log.e("CashbookActivity", "Stack trace:", e)
-
+                Log.e("CashbookActivity", "Error in addCashbookEntry", e)
                 runOnUiThread {
-                    val errorMessage = "Error adding entry: ${e.message}"
-                    Toast.makeText(this@CashbookActivity, errorMessage, Toast.LENGTH_LONG).show()
-                    Log.e("CashbookActivity", "Showed error toast: $errorMessage")
+                    Toast.makeText(this@CashbookActivity, "Error adding entry: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
-
-        Log.d("CashbookActivity", "=== End of addCashbookEntry function (coroutine launched) ===")
     }
 
     private fun showEntryOptionsDialog(entry: CashbookEntry) {
@@ -372,8 +361,7 @@ class CashbookActivity : AppCompatActivity() {
     }
 
     private fun editEntry(entry: CashbookEntry) {
-        // Similar to showAddEntryDialog but pre-filled with entry data
-        // Implementation similar to add dialog but with update functionality
+        // TODO: implement edit flow (prefill dialog and update row)
         Toast.makeText(this, "Edit functionality coming soon", Toast.LENGTH_SHORT).show()
     }
 
@@ -386,11 +374,7 @@ class CashbookActivity : AppCompatActivity() {
                     try {
                         SupabaseManager.client
                             .from("cashbook_entries")
-                            .delete {
-                                filter {
-                                    eq("id", entry.id ?: "")
-                                }
-                            }
+                            .delete { filter { eq("id", entry.id ?: "") } }
 
                         val index = entries.indexOf(entry)
                         if (index != -1) {
@@ -402,7 +386,6 @@ class CashbookActivity : AppCompatActivity() {
                                 Toast.makeText(this@CashbookActivity, "Entry deleted", Toast.LENGTH_SHORT).show()
                             }
                         }
-
                     } catch (e: Exception) {
                         runOnUiThread {
                             Toast.makeText(this@CashbookActivity, "Error deleting entry", Toast.LENGTH_SHORT).show()
@@ -423,18 +406,13 @@ class CashbookActivity : AppCompatActivity() {
         var todayOnlineAmount = 0.0
 
         entries.forEach { entry ->
-            val amount = if (entry.type == "IN") entry.amount else -entry.amount
-
-            if (entry.paymentMethod == "CASH") {
-                totalCash += amount
-                if (entry.date == today) {
-                    todayCash += amount
-                }
+            val delta = if (entry.type == CashbookEntry.TYPE_IN) entry.amount else -entry.amount
+            if (entry.paymentMethod == CashbookEntry.PAYMENT_METHOD_CASH) {
+                totalCash += delta
+                if (entry.date == today) todayCash += delta
             } else {
-                totalOnlineAmount += amount
-                if (entry.date == today) {
-                    todayOnlineAmount += amount
-                }
+                totalOnlineAmount += delta
+                if (entry.date == today) todayOnlineAmount += delta
             }
         }
 
@@ -448,17 +426,21 @@ class CashbookActivity : AppCompatActivity() {
         todayCashInHand.text = "₹ ${String.format("%.0f", todayCash)}"
         todayOnline.text = "₹ ${String.format("%.0f", todayOnlineAmount)}"
 
-        // Update balance text colors based on positive/negative
         updateBalanceTextColor(totalBalanceAmount, totalBalance)
         updateBalanceTextColor(todayBalanceAmount, todayBalance)
     }
 
     private fun updateBalanceTextColor(textView: TextView, balance: Double) {
-        when {
-            balance > 0 -> textView.setTextColor(getColor(R.color.colorGreen))
-            balance < 0 -> textView.setTextColor(getColor(R.color.colorRed))
-            else -> textView.setTextColor(getColor(R.color.black))
-        }
+        val green = ContextCompat.getColor(this, R.color.colorGreen)
+        val red = ContextCompat.getColor(this, R.color.colorRed)
+        val black = ContextCompat.getColor(this, R.color.black)
+        textView.setTextColor(
+            when {
+                balance > 0 -> green
+                balance < 0 -> red
+                else -> black
+            }
+        )
     }
 
     private fun updateEmptyState() {
@@ -474,14 +456,16 @@ class CashbookActivity : AppCompatActivity() {
     private fun showHelpDialog() {
         AlertDialog.Builder(this)
             .setTitle("Cashbook Help")
-            .setMessage("""
+            .setMessage(
+                """
                 • Use IN button to add income/money received
                 • Use OUT button to add expenses/money spent
                 • Choose between Cash or Online payment method
                 • View your total and today's balance at the top
                 • Tap on any entry to edit or delete it
                 • View detailed reports using the report button
-            """.trimIndent())
+                """.trimIndent()
+            )
             .setPositiveButton("Got it", null)
             .show()
     }

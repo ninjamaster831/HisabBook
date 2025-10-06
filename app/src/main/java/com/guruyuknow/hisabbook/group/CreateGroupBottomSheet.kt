@@ -6,7 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -18,7 +18,9 @@ import com.guruyuknow.hisabbook.R
 
 class CreateGroupBottomSheet : BottomSheetDialogFragment() {
 
-    private val viewModel: GroupExpenseViewModel by viewModels()
+    // ✅ Activity-scoped ViewModel so dismiss() doesn't cancel jobs
+    private val viewModel: GroupExpenseViewModel by activityViewModels()
+
     private lateinit var memberAdapter: AddMemberAdapter
     private val members = mutableListOf<MemberInput>()
 
@@ -72,20 +74,18 @@ class CreateGroupBottomSheet : BottomSheetDialogFragment() {
     private fun setupClickListeners() {
         // Add member button
         addMemberButton.setOnClickListener {
-            val name = memberNameInput.text.toString().trim()
-            val phone = memberPhoneInput.text.toString().trim()
+            val name = memberNameInput.text?.toString()?.trim().orEmpty()
+            val phone = memberPhoneInput.text?.toString()?.trim().orEmpty()
 
             if (name.isEmpty()) {
                 memberNameInput.error = "Enter member name"
                 return@setOnClickListener
             }
-
             if (phone.isEmpty()) {
                 memberPhoneInput.error = "Enter phone number"
                 return@setOnClickListener
             }
-
-            // Check for duplicate phone numbers
+            // Avoid duplicates by "userId" (you’re using phone as key here)
             if (members.any { it.userId == phone }) {
                 memberPhoneInput.error = "Member already added"
                 return@setOnClickListener
@@ -100,14 +100,12 @@ class CreateGroupBottomSheet : BottomSheetDialogFragment() {
         }
 
         // Create group button
-        createGroupButton.setOnClickListener {
-            createGroup()
-        }
+        createGroupButton.setOnClickListener { createGroup() }
     }
 
     private fun createGroup() {
-        val groupName = groupNameInput.text.toString().trim()
-        val budgetText = budgetInput.text.toString().trim()
+        val groupName = groupNameInput.text?.toString()?.trim().orEmpty()
+        val budgetText = budgetInput.text?.toString()?.trim().orEmpty()
 
         Log.d(TAG, "CreateGroup clicked: groupName=$groupName budget=$budgetText members=${members.size}")
 
@@ -115,17 +113,13 @@ class CreateGroupBottomSheet : BottomSheetDialogFragment() {
             groupNameInput.error = "Enter group name"
             return
         }
-
         if (members.isEmpty()) {
             Toast.makeText(requireContext(), "Add at least one member", Toast.LENGTH_SHORT).show()
             Log.w(TAG, "Validation failed: no members")
             return
         }
 
-        val budget = if (budgetText.isNotEmpty()) {
-            budgetText.toDoubleOrNull()
-        } else null
-
+        val budget = if (budgetText.isNotEmpty()) budgetText.toDoubleOrNull() else null
         if (budgetText.isNotEmpty() && budget == null) {
             budgetInput.error = "Invalid budget amount"
             Log.w(TAG, "Validation failed: invalid budget")
@@ -141,7 +135,6 @@ class CreateGroupBottomSheet : BottomSheetDialogFragment() {
         )
     }
 
-
     private fun observeViewModel() {
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             Log.d(TAG, "isLoading=$isLoading")
@@ -150,18 +143,35 @@ class CreateGroupBottomSheet : BottomSheetDialogFragment() {
             addMemberButton.isEnabled = !isLoading
         }
 
-        viewModel.groupCreationResult.observe(viewLifecycleOwner) { result ->
-            Log.d(TAG, "groupCreationResult observed: $result")
-            if (result.isSuccess) {
-                Toast.makeText(requireContext(), "Group created successfully!", Toast.LENGTH_SHORT).show()
+        viewModel.joinResult.observe(viewLifecycleOwner) { res ->
+            if (res == null) return@observe
+            if (res.isSuccess) {
+                Toast.makeText(requireContext(), "Joined group successfully!", Toast.LENGTH_SHORT).show()
+                viewModel.clearJoinResult()
                 dismiss()
             } else {
-                Log.e(TAG, "Group creation failed: ${result.exceptionOrNull()?.message}")
+                Log.e(TAG, "Join failed: ${res.exceptionOrNull()?.message}")
             }
         }
+
         viewModel.lastCreatedGroupCode.observe(viewLifecycleOwner) { code ->
             code?.let {
                 Toast.makeText(requireContext(), "Share this code: $it", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        viewModel.groupCreationResult.observe(viewLifecycleOwner) { result ->
+            Log.d(TAG, "groupCreationResult observed: $result")
+            if (result == null) return@observe
+
+            if (result.isSuccess) {
+                Log.d(TAG, "Group created successfully, dismissing sheet")
+                // ✅ Dismiss so ChatFragment (same VM) can show the GroupCodeDialog
+                dismiss()
+            } else {
+                val errorMsg = result.exceptionOrNull()?.message ?: "Failed to create group"
+                Log.e(TAG, "Group creation failed: $errorMsg")
+                Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_LONG).show()
             }
         }
 
@@ -173,7 +183,6 @@ class CreateGroupBottomSheet : BottomSheetDialogFragment() {
             }
         }
     }
-
 }
 
 // Adapter for adding members

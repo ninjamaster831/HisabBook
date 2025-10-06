@@ -3,9 +3,13 @@ package com.guruyuknow.hisabbook
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.guruyuknow.hisabbook.databinding.ActivityMainBinding
+import com.vanniktech.emoji.EmojiManager
+import com.vanniktech.emoji.google.GoogleEmojiProvider
 
 class MainActivity : AppCompatActivity() {
 
@@ -24,7 +28,7 @@ class MainActivity : AppCompatActivity() {
             redirectToLogin()
             return
         }
-
+        EmojiManager.install(GoogleEmojiProvider())
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -74,4 +78,12 @@ class MainActivity : AppCompatActivity() {
             redirectToLogin()
         }
     }
+    fun hideBottomNav() {
+        findViewById<BottomNavigationView>(R.id.bottomNavigation)?.visibility = View.GONE
+    }
+
+    fun showBottomNav() {
+        findViewById<BottomNavigationView>(R.id.bottomNavigation)?.visibility = View.VISIBLE
+    }
+
 }

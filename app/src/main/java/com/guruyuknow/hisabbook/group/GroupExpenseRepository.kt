@@ -1,11 +1,14 @@
 package com.guruyuknow.hisabbook.group
 
+import android.content.Context
+import android.net.Uri
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.util.Log
+import android.webkit.MimeTypeMap
 import com.guruyuknow.hisabbook.Expense
 import com.guruyuknow.hisabbook.SupabaseManager
 import com.guruyuknow.hisabbook.data.expense.GroupInsert
@@ -15,8 +18,12 @@ import com.guruyuknow.hisabbook.data.expense.MemberBalanceInsert
 import com.guruyuknow.hisabbook.data.expense.MemberBalanceUpdate
 import com.guruyuknow.hisabbook.data.expense.ExpenseInsert
 import io.github.jan.supabase.exceptions.RestException
+import io.github.jan.supabase.storage.storage
+import kotlinx.coroutines.runInterruptible
+import java.util.Locale
 import kotlin.math.round
-
+private const val MEDIA_BUCKET = "chat-media"
+private const val BUCKET = "chat-media"
 private const val TAG_RECALC = "Recalc"
 private const val TAG_CHAT = "GroupChat"
 class GroupExpenseRepository {
@@ -324,48 +331,6 @@ class GroupExpenseRepository {
 
         settlements
     }
-    suspend fun joinGroupByCodeWithPhone(
-        code: String,
-        phone: String,
-        userName: String
-    ): Result<Long> = withContext(Dispatchers.IO) {
-        try {
-            // 1. Find group by join_code
-            val group = supabase.from(Tables.GROUPS)
-                .select {
-                    filter { eq("join_code", code) }
-                    limit(1)
-                }
-                .decodeSingle<Group>()  // throws if not found
-
-            val groupId = group.id ?: return@withContext Result.failure<Long>(
-                IllegalStateException("Group id missing")
-            )
-
-            // 2. Insert into group_members (phone used as user_id)
-            supabase.from(Tables.GROUP_MEMBERS).insert(
-                GroupMemberInsert(
-                    group_id = groupId,
-                    user_id = phone,
-                    user_name = userName
-                )
-            )
-
-            // 3. Insert into member_balances
-            supabase.from(Tables.MEMBER_BALANCES).insert(
-                MemberBalanceInsert(
-                    group_id = groupId,
-                    user_id = phone,
-                    user_name = userName
-                )
-            )
-
-            Result.success(groupId)  // ✅ Non-nullable Long
-        } catch (e: Exception) {
-            Log.e(TAG_CHAT, "joinGroupByCodeWithPhone() failed", e)
-            Result.failure(e)
-        }
-    }
 
     // ==================== STATISTICS ====================
     private suspend fun isMember(groupId: Long, userId: String): Boolean = withContext(Dispatchers.IO) {
@@ -412,12 +377,10 @@ class GroupExpenseRepository {
     suspend fun sendMessage(groupId: Long, text: String, senderId: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             val trimmed = text.trim()
-            if (trimmed.isEmpty()) {
-                return@withContext Result.failure(IllegalArgumentException("Message is empty"))
-            }
-
+            if (trimmed.isEmpty()) return@withContext Result.failure(IllegalArgumentException("Empty"))
             try {
-                val inserted = supabase.from(Tables.GROUP_MESSAGES)
+                SupabaseManager.client
+                    .from("group_messages")
                     .insert(
                         GroupMessageInsert(
                             groupId = groupId,
@@ -425,37 +388,242 @@ class GroupExpenseRepository {
                             message = trimmed
                         )
                     ) {
-                        select()  // return inserted row
-                        single()
+                        select(); single()
                     }
-                    .decodeAs<GroupMessage>() // your GroupMessage is @Serializable ✅
-
-                Log.d(TAG_CHAT, "sendMessage(): inserted id=${inserted.id} by=${inserted.senderId}")
+                    .decodeAs<GroupMessageRow>() // we don't actually need the row here
                 Result.success(Unit)
-            } catch (e: RestException) {
-                logSupabaseError(TAG_CHAT, "sendMessage()", e)
-                Result.failure(e)
             } catch (e: Exception) {
-                logSupabaseError(TAG_CHAT, "sendMessage()", e)
+                Log.e(TAG_CHAT, "sendMessage failed", e)
                 Result.failure(e)
             }
         }
 
+    /** ---------- MESSAGES: SEND (MEDIA) ---------- */
+    /* Reads the content into a ByteArray (works with current supabase-kt upload API). */
+    suspend fun sendMediaMessage(
+        context: Context,
+        groupId: Long,
+        senderId: String,
+        localUri: Uri,
+        mediaType: String,         // "image" | "file"
+        fileNameHint: String? = null
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            // Build path "groups/{groupId}/{name}.{ext}"
+            val cr = context.contentResolver
+            val name = fileNameHint ?: "g${groupId}_${System.currentTimeMillis()}"
+            val ext = when (mediaType) { "image" -> ".jpg"; else -> ".bin" }
+            val path = "groups/$groupId/$name$ext"
 
+            // Read bytes for upload
+            val bytes = runInterruptible {
+                cr.openInputStream(localUri)?.use { it.readBytes() }
+            } ?: return@withContext Result.failure(IllegalStateException("Cannot open stream"))
+
+            // Upload to storage bucket
+            SupabaseManager.client.storage.from(MEDIA_BUCKET).upload(path, bytes, upsert = true)
+
+            // Public URL (bucket is public). If private, createSignedUrl() instead.
+            val publicUrl = SupabaseManager.client.storage.from(MEDIA_BUCKET).publicUrl(path)
+
+            // Insert message referencing media
+            SupabaseManager.client.from("group_messages")
+                .insert(
+                    GroupMessageInsert(
+                        groupId = groupId,
+                        senderId = senderId,
+                        message = if (mediaType == "image") "[image]" else (fileNameHint ?: "file"),
+                        media_type = mediaType,
+                        media_url = publicUrl
+                    )
+                ) {
+                    select(); single()
+                }
+                .decodeAs<GroupMessageRow>()
+
+            Log.d(TAG_CHAT, "media message sent url=$publicUrl")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG_CHAT, "sendMediaMessage failed", e)
+            Result.failure(e)
+        }
+    }
+
+    /** ---------- MESSAGES: LOAD LIST (joins profiles in a second query) ---------- */
     suspend fun loadMessages(groupId: Long): Result<List<GroupMessage>> = withContext(Dispatchers.IO) {
         try {
-            val rows = supabase.from(Tables.GROUP_MESSAGES)
+            // 1) Fetch messages (ascending so UI reads top->bottom smoothly)
+            val rows: List<GroupMessageRow> =
+                SupabaseManager.client.from("group_messages")
+                    .select {
+                        filter { eq("group_id", groupId) }
+                        order(column = "created_at", order = Order.ASCENDING)
+                    }
+                    .decodeList<GroupMessageRow>()
+
+            if (rows.isEmpty()) return@withContext Result.success(emptyList())
+
+            // 2) Fetch sender profiles in a single query
+            val senderIds = rows.map { it.senderId }.distinct()
+            val profiles: List<UserProfileRow> =
+                SupabaseManager.client.from("user_profiles")
+                    .select {
+                        filter { isIn("id", senderIds) }   // id must match user_profiles.id
+                    }
+                    .decodeList<UserProfileRow>()
+
+            val profileById = profiles.associateBy { it.id }
+
+            // 3) Map to UI model
+            val ui = rows.map { r ->
+                val p = profileById[r.senderId]
+                GroupMessage(
+                    id = r.id,
+                    groupId = r.groupId,
+                    senderId = r.senderId,
+                    senderName = p?.fullName,
+                    message = r.message,
+                    createdAt = r.createdAt,
+                    mediaType = r.mediaType,
+                    mediaUrl = r.mediaUrl,
+                    avatarUrl = p?.avatarUrl
+                )
+            }
+            Result.success(ui)
+        } catch (e: Exception) {
+            Log.e(TAG_CHAT, "loadMessages failed", e)
+            Result.failure(e)
+        }
+    }
+
+
+    suspend fun joinGroupByCode(
+        code: String,
+        userId: String,  // Authenticated user UUID
+        userName: String
+    ): Result<Long> = withContext(Dispatchers.IO) {
+        try {
+            // 1. Find group by join_code
+            val group = supabase.from(Tables.GROUPS)
                 .select {
-                    filter { eq("group_id", groupId) }
-                    order(column = "created_at", order = Order.DESCENDING)
+                    filter {
+                        eq("join_code", code)
+                        eq("is_active", true)
+                    }
+                    limit(1)
                 }
-                .decodeList<GroupMessage>()
-            Result.success(rows.reversed())
+                .decodeSingle<Group>()
+
+            val groupId = group.id
+                ?: return@withContext Result.failure(IllegalStateException("Group id missing"))
+
+            // 2. Check if already a member
+            val existing = supabase.from(Tables.GROUP_MEMBERS)
+                .select {
+                    filter {
+                        eq("group_id", groupId)
+                        eq("user_id", userId)
+                    }
+                    limit(1)
+                }
+                .decodeList<GroupMember>()
+
+            if (existing.isNotEmpty()) {
+                return@withContext Result.failure(IllegalStateException("Already a member of this group"))
+            }
+
+            // 3. Insert into group_members (using authenticated user_id)
+            supabase.from(Tables.GROUP_MEMBERS).insert(
+                GroupMemberInsert(
+                    group_id = groupId,
+                    user_id = userId,  // ✅ Using auth UUID
+                    user_name = userName
+                )
+            )
+
+            // 4. Insert into member_balances
+            supabase.from(Tables.MEMBER_BALANCES).insert(
+                MemberBalanceInsert(
+                    group_id = groupId,
+                    user_id = userId,  // ✅ Using auth UUID
+                    user_name = userName
+                )
+            )
+
+            Log.d(TAG_CHAT, "Successfully joined group $groupId with userId=$userId")
+            Result.success(groupId)
+
         } catch (e: RestException) {
-            logSupabaseError(TAG_CHAT, "loadMessages()", e)
+            logSupabaseError(TAG_CHAT, "joinGroupByCode()", e)
             Result.failure(e)
         } catch (e: Exception) {
-            logSupabaseError(TAG_CHAT, "loadMessages()", e)
+            logSupabaseError(TAG_CHAT, "joinGroupByCode()", e)
+            Result.failure(e)
+        }
+    }
+
+
+    suspend fun joinGroupByCodeWithPhone(
+        code: String,
+        phone: String,
+        userName: String
+    ): Result<Long> = withContext(Dispatchers.IO) {
+        try {
+            // 1. Find group by join_code
+            val group = supabase.from(Tables.GROUPS)
+                .select {
+                    filter {
+                        eq("join_code", code)
+                        eq("is_active", true)
+                    }
+                    limit(1)
+                }
+                .decodeSingle<Group>()
+
+            val groupId = group.id
+                ?: return@withContext Result.failure(IllegalStateException("Group id missing"))
+
+            // 2. Check if already a member
+            val existing = supabase.from(Tables.GROUP_MEMBERS)
+                .select {
+                    filter {
+                        eq("group_id", groupId)
+                        eq("user_id", phone)
+                    }
+                    limit(1)
+                }
+                .decodeList<GroupMember>()
+
+            if (existing.isNotEmpty()) {
+                return@withContext Result.failure(IllegalStateException("Already a member of this group"))
+            }
+
+            // 3. Insert into group_members (phone used as user_id)
+            supabase.from(Tables.GROUP_MEMBERS).insert(
+                GroupMemberInsert(
+                    group_id = groupId,
+                    user_id = phone,  // ⚠️ Using phone as user_id
+                    user_name = userName
+                )
+            )
+
+            // 4. Insert into member_balances
+            supabase.from(Tables.MEMBER_BALANCES).insert(
+                MemberBalanceInsert(
+                    group_id = groupId,
+                    user_id = phone,  // ⚠️ Using phone as user_id
+                    user_name = userName
+                )
+            )
+
+            Log.d(TAG_CHAT, "Successfully joined group $groupId with phone=$phone")
+            Result.success(groupId)
+
+        } catch (e: RestException) {
+            logSupabaseError(TAG_CHAT, "joinGroupByCodeWithPhone()", e)
+            Result.failure(e)
+        } catch (e: Exception) {
+            logSupabaseError(TAG_CHAT, "joinGroupByCodeWithPhone()", e)
             Result.failure(e)
         }
     }

@@ -1,10 +1,9 @@
 package com.guruyuknow.hisabbook
 
-import android.graphics.Color
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -15,40 +14,47 @@ class EventsAdapter(
     private val onClick: (Event) -> Unit
 ) : ListAdapter<Event, EventsAdapter.VH>(DIFF) {
 
-    private val df = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+    // Force English months so you don’t get “सित”
+    private val dayFmt = SimpleDateFormat("dd", Locale.ENGLISH)
+    private val monthFmt = SimpleDateFormat("MMM", Locale.ENGLISH)
+    private val dateFmt = SimpleDateFormat("dd MMM yyyy", Locale.ENGLISH)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-        val inflater = LayoutInflater.from(parent.context)
-        val root = inflater.inflate(android.R.layout.simple_list_item_2, parent, false) as ViewGroup
-        return VH(root)
+        val v = LayoutInflater.from(parent.context).inflate(R.layout.item_event, parent, false)
+        return VH(v)
     }
 
     override fun onBindViewHolder(holder: VH, position: Int) {
-        val item = getItem(position)
-        val ctx = holder.itemView.context
+        val e = getItem(position)
 
-        // Force readable colors on dark background
-        val titleColor = ctx.safeColor(R.color.white, Color.WHITE)
-        val subtitleColor = ctx.safeColor(R.color.violet_light, 0xCCFFFFFF.toInt()) // 80% white fallback
-        holder.title.setTextColor(titleColor)
-        holder.subtitle.setTextColor(subtitleColor)
+        // Title
+        holder.title.text = e.name
 
-        holder.title.text = item.name
+        // Dates
+        val start = Date(e.startDate)
+        val end = e.endDate?.let { Date(it) }
 
-        val start = df.format(Date(item.startDate))
-        val end = item.endDate?.let { " - ${df.format(Date(it))}" }.orEmpty()
-        val loc = item.location?.takeIf { it.isNotBlank() }?.let { " • $it" } ?: ""
-        holder.subtitle.text = start + end + loc
+        val mainLine = when {
+            end == null || sameDay(start, end) -> dateFmt.format(start)
+            else -> "${dateFmt.format(start)} – ${dateFmt.format(end)}"
+        }
+        val locationPart = e.location?.takeIf { it.isNotBlank() }?.let { " • $it" } ?: ""
+        holder.date.text = mainLine + locationPart
 
-        // Make row obviously tappable
-        holder.itemView.isClickable = true
-        holder.itemView.isFocusable = true
-        holder.itemView.setOnClickListener { onClick(item) }
+        // Left pill
+        holder.day.text = dayFmt.format(start)
+        holder.month.text = monthFmt.format(start).uppercase(Locale.ENGLISH)
+
+        // Click
+        holder.itemView.setOnClickListener { onClick(e) }
     }
 
-    class VH(root: ViewGroup) : RecyclerView.ViewHolder(root) {
-        val title: TextView = root.findViewById(android.R.id.text1)
-        val subtitle: TextView = root.findViewById(android.R.id.text2)
+    class VH(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val title: TextView = itemView.findViewById(R.id.tvEventName)
+        val date: TextView = itemView.findViewById(R.id.tvEventDate)
+        val location: TextView = itemView.findViewById(R.id.tvEventLocation)
+        val day: TextView = itemView.findViewById(R.id.tvDay)
+        val month: TextView = itemView.findViewById(R.id.tvMonth)
     }
 
     companion object {
@@ -56,8 +62,12 @@ class EventsAdapter(
             override fun areItemsTheSame(oldItem: Event, newItem: Event) = oldItem.id == newItem.id
             override fun areContentsTheSame(oldItem: Event, newItem: Event) = oldItem == newItem
         }
+
+        private fun sameDay(a: Date, b: Date): Boolean {
+            val c1 = Calendar.getInstance().apply { time = a }
+            val c2 = Calendar.getInstance().apply { time = b }
+            return c1.get(Calendar.YEAR) == c2.get(Calendar.YEAR) &&
+                    c1.get(Calendar.DAY_OF_YEAR) == c2.get(Calendar.DAY_OF_YEAR)
+        }
     }
 }
-
-private fun android.content.Context.safeColor(resId: Int, fallback: Int): Int =
-    runCatching { ContextCompat.getColor(this, resId) }.getOrElse { fallback }

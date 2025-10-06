@@ -8,8 +8,12 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.guruyuknow.hisabbook.R
@@ -38,15 +42,18 @@ class StaffActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Edge to edge: we’ll consume system bars ourselves.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
+
         binding = ActivityStaffBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        WindowCompat.setDecorFitsSystemWindows(window, true)
 
         setupToolbar()
         setupRecyclerView()
         setupClickListeners()
         setupDialogResultListener()
+        applyWindowInsets() // <- important: fixes FAB cut & adds safe paddings
 
         resolveBusinessOwnerIdAndLoad()
     }
@@ -56,19 +63,17 @@ class StaffActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Manage Staff"
 
-        // Ensure navigation icon aligns well
+        // Keep title single line
         binding.toolbar.post {
             for (i in 0 until binding.toolbar.childCount) {
-                val view = binding.toolbar.getChildAt(i)
-                if (view is androidx.appcompat.widget.AppCompatTextView) {
-                    view.isSingleLine = true
-                    view.ellipsize = null
-                    view.maxLines = 1
+                (binding.toolbar.getChildAt(i) as? androidx.appcompat.widget.AppCompatTextView)?.apply {
+                    isSingleLine = true
+                    maxLines = 1
+                    ellipsize = null
                 }
             }
         }
     }
-
 
     private fun setupRecyclerView() {
         staffAdapter = StaffAdapter(
@@ -80,6 +85,7 @@ class StaffActivity : AppCompatActivity() {
         binding.recyclerViewStaff.apply {
             layoutManager = LinearLayoutManager(this@StaffActivity)
             adapter = staffAdapter
+            setHasFixedSize(true)
         }
     }
 
@@ -99,11 +105,42 @@ class StaffActivity : AppCompatActivity() {
             this
         ) { _, bundle ->
             if (bundle.getBoolean(AttendanceDialogFragment.RESULT_OK, false)) {
-                // Refresh today summary and list after marking attendance
                 businessOwnerId?.let { id ->
-                    loadStaffData(id) // cheap + also refreshes summary & total due
+                    loadStaffData(id)
                 }
             }
+        }
+    }
+
+    /** Handles status bar & nav bar insets so content/FAB don’t get cut */
+    private fun applyWindowInsets() {
+        // Root: apply only left/right for nice edge-to-edge look.
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+
+            // AppBar padding for status bar (top)
+            binding.appBar.setPadding(
+                binding.appBar.paddingLeft,
+                bars.top,
+                binding.appBar.paddingRight,
+                binding.appBar.paddingBottom
+            )
+
+            // Content lists get a safe bottom padding (so last rows aren’t hidden)
+            val contentBottomPad = bars.bottom.coerceAtLeast(binding.recyclerViewStaff.paddingBottom)
+            binding.recyclerViewStaff.updatePadding(bottom = contentBottomPad)
+            binding.layoutContent.updatePadding(bottom = contentBottomPad)
+            binding.layoutEmpty.updatePadding(bottom = contentBottomPad)
+
+            // FloatingActionButton avoids 3-button nav bar overlap
+            binding.fabAddStaff.updateLayoutParams<CoordinatorLayout.LayoutParams> {
+                bottomMargin = (bottomMargin + bars.bottom)
+            }
+
+            // Loading overlay respects insets visually
+            binding.loadingOverlay.updatePadding(bottom = bars.bottom, top = bars.top)
+
+            insets
         }
     }
 
@@ -119,7 +156,8 @@ class StaffActivity : AppCompatActivity() {
     }
 
     private fun showLoading(show: Boolean) {
-        binding.progressBar.visibility = if (show) View.VISIBLE else View.GONE
+        // Dim content + block touches when loading
+        binding.loadingOverlay.visibility = if (show) View.VISIBLE else View.GONE
         binding.layoutContent.alpha = if (show) 0.5f else 1f
         binding.layoutContent.isEnabled = !show
     }
@@ -136,10 +174,9 @@ class StaffActivity : AppCompatActivity() {
                     staffAdapter.notifyDataSetChanged()
 
                     updateEmptyState(staff.isEmpty())
-                    // In parallel: update today summary + total due
+                    // Parallel: today summary + total due
                     updateTodayAttendanceSummary(businessOwnerId)
                     calculateTotalDue(staff)
-
                 } else {
                     val error = result.exceptionOrNull()?.message ?: "Unknown error"
                     Toast.makeText(this@StaffActivity, "Error loading staff: $error", Toast.LENGTH_SHORT).show()
@@ -158,7 +195,6 @@ class StaffActivity : AppCompatActivity() {
         binding.layoutEmpty.visibility = if (isEmpty) View.VISIBLE else View.GONE
         binding.layoutContent.visibility = if (isEmpty) View.GONE else View.VISIBLE
         if (isEmpty) {
-            // Reset summary UI to zeros to avoid stale numbers
             binding.tvPresentCount.text = "0"
             binding.tvAbsentCount.text = "0"
             binding.tvHalfDayCount.text = "0"
@@ -182,7 +218,6 @@ class StaffActivity : AppCompatActivity() {
                     binding.tvAbsentCount.text  = absent.toString()
                     binding.tvHalfDayCount.text = half.toString()
                 } else {
-                    // reset to zero on error
                     binding.tvPresentCount.text = "0"
                     binding.tvAbsentCount.text = "0"
                     binding.tvHalfDayCount.text = "0"
@@ -203,8 +238,6 @@ class StaffActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val currentMonth = SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
-
-                // Run DAILY attendance fetches concurrently
                 val dailyJobs = staff.map { s ->
                     async {
                         when (s.salaryType) {
@@ -237,7 +270,6 @@ class StaffActivity : AppCompatActivity() {
 
     private fun getCurrency(amount: Double): String {
         val nf = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
-        // Ensure INR symbol format like ₹12,345.00 (you can trim decimals if you want)
         return nf.format(amount)
     }
 
@@ -250,8 +282,7 @@ class StaffActivity : AppCompatActivity() {
     }
 
     private fun openContactPicker() {
-        val intent = Intent(this, ContactPickerActivity::class.java)
-        startActivity(intent)
+        startActivity(Intent(this, ContactPickerActivity::class.java))
     }
 
     private fun openStaffDetails(staff: Staff) {
@@ -303,7 +334,6 @@ class StaffActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Re-resolve owner id (in case session changed) and refresh
         val id = SupabaseManager.client.auth.currentUserOrNull()?.id
         if (id != null) {
             if (id != businessOwnerId) businessOwnerId = id
