@@ -204,14 +204,18 @@ object SupabaseCashbook {
     @Serializable
     data class CashbookEntryPartial(
         val id: String? = null,
-        val amount: Double? = null,                 // <- was String?, now Double?
+        @SerialName("amount")
+        val amountString: String? = null,  // Keep as String from DB
         val type: String? = null,
         @SerialName("payment_method") val paymentMethod: String? = null,
         val date: String? = null,
         val category: String? = null,
         val description: String? = null
-    )
-
+    ) {
+        // Computed property to safely parse amount
+        val amount: Double?
+            get() = amountString?.toDoubleOrNull()
+    }
 
     @Serializable
     data class BillWithEntry(
@@ -226,14 +230,11 @@ object SupabaseCashbook {
 
     /**
      * Returns bills joined with cashbook_entries and filtered by entry type (IN/OUT).
-     * Requires FK bills.cashbook_entry_id -> cashbook_entries.id for !inner to work.
      */
-// REPLACE this function
     suspend fun getBillsByType(type: String): List<BillWithEntry> {
         val uid = currentUserId() ?: return emptyList()
         return try {
-            client.from("bills").select(
-                // 👇 single line; no \n
+            val result = client.from("bills").select(
                 columns = Columns.raw(
                     "id,image_url,image_name,extracted_amount,extracted_text,created_at," +
                             "cashbook_entries!inner(id,amount,type,payment_method,date,category,description)"
@@ -241,18 +242,24 @@ object SupabaseCashbook {
             ) {
                 filter {
                     eq("user_id", uid)
-                    // filter on joined table
                     eq("cashbook_entries.type", type.uppercase())
                 }
                 order("created_at", Order.DESCENDING)
-            }.decodeList()
+            }.decodeList<BillWithEntry>()
+
+            // Log for debugging
+            Log.d(TAG, "getBillsByType($type): Found ${result.size} bills")
+            result.firstOrNull()?.let {
+                Log.d(TAG, "First bill amount: ${it.entry?.amountString} -> parsed: ${it.entry?.amount}")
+            }
+
+            result
         } catch (e: Exception) {
             Log.e(TAG, "getBillsByType failed", e)
             emptyList()
         }
     }
 
-    // REPLACE this function
     suspend fun getAllBillsWithEntry(): List<BillWithEntry> {
         val uid = currentUserId() ?: return emptyList()
         return try {
@@ -270,7 +277,6 @@ object SupabaseCashbook {
             emptyList()
         }
     }
-
 
     // ---------------- Private helpers ----------------
 
@@ -291,8 +297,8 @@ object SupabaseCashbook {
                 ?: return false
 
             val bucket = client.storage.from("bills")
-            bucket.upload(filePath, imageBytes, upsert = false)  // needs storage.objects policies
-            val imageUrl = bucket.publicUrl(filePath)            // public bucket: ok; else use signed URL
+            bucket.upload(filePath, imageBytes, upsert = false)
+            val imageUrl = bucket.publicUrl(filePath)
 
             val billBody = buildJsonObject {
                 put("user_id", uid)

@@ -4,6 +4,8 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.guruyuknow.hisabbook.SupabaseManager
@@ -23,59 +25,116 @@ class StaffDetailsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // Set status bar color to match toolbar
+        window.statusBarColor = android.graphics.Color.parseColor("#50C9C3")
+
         binding = ActivityStaffDetailsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         val staffId = intent.getStringExtra("staff_id")
         if (staffId != null) {
             setupUI()
+            applyWindowInsets()
             loadStaffData(staffId)
         } else {
+            Toast.makeText(this, "Invalid staff ID", Toast.LENGTH_SHORT).show()
             finish()
         }
     }
 
     private fun setupUI() {
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = ""
+        supportActionBar?.apply {
+            setDisplayHomeAsUpEnabled(true)
+            title = ""
+        }
 
         // Initialize the attendance adapter
         attendanceAdapter = AttendanceAdapter(attendanceList)
         binding.recyclerViewAttendance.apply {
             layoutManager = LinearLayoutManager(this@StaffDetailsActivity)
             adapter = attendanceAdapter
+            setHasFixedSize(true)
+
+            // Add spacing
+            addItemDecoration(object : androidx.recyclerview.widget.RecyclerView.ItemDecoration() {
+                override fun getItemOffsets(
+                    outRect: android.graphics.Rect,
+                    view: View,
+                    parent: androidx.recyclerview.widget.RecyclerView,
+                    state: androidx.recyclerview.widget.RecyclerView.State
+                ) {
+                    outRect.bottom = resources.getDimensionPixelSize(com.guruyuknow.hisabbook.R.dimen.spacing_small)
+                }
+            })
         }
 
-        // Enhanced FAB click handling
+        // FAB click handling
         binding.fabEditStaff.setOnClickListener {
             currentStaff?.let { staff ->
-                // Navigate to edit staff activity
+                Toast.makeText(this, "Edit ${staff.name}", Toast.LENGTH_SHORT).show()
+                // TODO: Navigate to edit staff activity
                 // val intent = Intent(this, EditStaffActivity::class.java)
                 // intent.putExtra("staff_id", staff.id)
                 // startActivity(intent)
-                Toast.makeText(this, "Edit ${staff.name}", Toast.LENGTH_SHORT).show()
             }
         }
 
         showLoading(true)
     }
 
+    private fun applyWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val systemBars = insets.getInsets(
+                androidx.core.view.WindowInsetsCompat.Type.systemBars()
+            )
+            val navigationBars = insets.getInsets(
+                androidx.core.view.WindowInsetsCompat.Type.navigationBars()
+            )
+
+            // Apply top padding to AppBar for status bar
+            binding.appBar.setPadding(
+                0,
+                systemBars.top,
+                0,
+                0
+            )
+
+            // Apply bottom padding to FAB for navigation bar
+            val fabParams = binding.fabEditStaff.layoutParams as androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams
+            fabParams.bottomMargin = 20.dpToPx() + navigationBars.bottom
+            fabParams.rightMargin = 20.dpToPx()
+            binding.fabEditStaff.layoutParams = fabParams
+
+            insets
+        }
+    }
+
+    // Extension function to convert dp to px
+    private fun Int.dpToPx(): Int {
+        return (this * resources.displayMetrics.density).toInt()
+    }
+
     private fun loadStaffData(staffId: String) {
         lifecycleScope.launch {
             try {
                 val staffResult = SupabaseManager.getStaffById(staffId)
+
                 if (staffResult.isSuccess) {
                     currentStaff = staffResult.getOrNull()
                     currentStaff?.let { staff ->
                         updateStaffUI(staff)
                         loadAttendanceData(staffId)
+                    } ?: run {
+                        showError("Staff data not found")
                     }
                 } else {
-                    showError("Failed to load staff details")
+                    showError("Failed to load staff details: ${staffResult.exceptionOrNull()?.message}")
                 }
             } catch (e: Exception) {
-                showError("Error: ${e.message}")
+                showError("Error: ${e.localizedMessage}")
             }
         }
     }
@@ -86,11 +145,11 @@ class StaffDetailsActivity : AppCompatActivity() {
             tvStaffNameLarge.text = staff.name
             tvStaffPhoneLarge.text = formatPhoneNumber(staff.phoneNumber)
 
-            // Generate and set initials with better logic
+            // Generate and set initials
             val initials = generateInitials(staff.name)
             tvStaffInitialsLarge.text = initials
 
-            // Update salary information with better formatting
+            // Update salary information
             tvSalaryType.text = when (staff.salaryType) {
                 SalaryType.MONTHLY -> "Monthly Salary"
                 SalaryType.DAILY -> "Daily Wage"
@@ -101,6 +160,9 @@ class StaffDetailsActivity : AppCompatActivity() {
 
             // Update toolbar title
             supportActionBar?.title = staff.name
+
+            // Set content description for accessibility
+            tvStaffInitialsLarge.contentDescription = "Profile picture for ${staff.name}"
         }
     }
 
@@ -117,6 +179,8 @@ class StaffDetailsActivity : AppCompatActivity() {
                         updateAttendanceSummary(it)
                         calculateAndShowSalary(it)
                     }
+                } else {
+                    updateAttendanceSummary(AttendanceSummary(0, 0, 0))
                 }
 
                 // Load attendance history
@@ -124,13 +188,20 @@ class StaffDetailsActivity : AppCompatActivity() {
                 if (historyResult.isSuccess) {
                     val attendance = historyResult.getOrNull() ?: emptyList()
                     attendanceList.clear()
-                    attendanceList.addAll(attendance)
+                    attendanceList.addAll(attendance.sortedByDescending { it.date })
                     attendanceAdapter.notifyDataSetChanged()
+
+                    // Show empty state if no attendance
+                    binding.tvNoAttendance.visibility =
+                        if (attendance.isEmpty()) View.VISIBLE else View.GONE
+                } else {
+                    binding.tvNoAttendance.visibility = View.VISIBLE
                 }
 
                 showLoading(false)
+
             } catch (e: Exception) {
-                showError("Failed to load attendance data: ${e.message}")
+                showError("Failed to load attendance data: ${e.localizedMessage}")
                 showLoading(false)
             }
         }
@@ -138,15 +209,14 @@ class StaffDetailsActivity : AppCompatActivity() {
 
     private fun updateAttendanceSummary(summary: AttendanceSummary) {
         binding.apply {
-            // Update main summary cards
             tvPresentDays.text = summary.present.toString()
             tvAbsentDays.text = summary.absent.toString()
             tvHalfDays.text = summary.halfDay.toString()
 
-            // Update the small count TextViews (if they exist in your layout)
-            // tvPresentCount?.text = summary.present.toString()
-            // tvAbsentCount?.text = summary.absent.toString()
-            // tvHalfDayCount?.text = summary.halfDay.toString()
+            // Animate the update
+            animateView(tvPresentDays)
+            animateView(tvAbsentDays)
+            animateView(tvHalfDays)
         }
     }
 
@@ -166,6 +236,10 @@ class StaffDetailsActivity : AppCompatActivity() {
             }
 
             binding.tvTotalSalary.text = formatCurrency(totalSalary)
+            animateView(binding.tvTotalSalary)
+
+            // Update month label
+            binding.tvCurrentMonth.text = getCurrentMonthName()
         }
     }
 
@@ -174,33 +248,53 @@ class StaffDetailsActivity : AppCompatActivity() {
         return calendar.getActualMaximum(Calendar.DAY_OF_MONTH).toDouble()
     }
 
+    private fun getCurrentMonthName(): String {
+        return SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date())
+    }
+
     private fun generateInitials(name: String): String {
         return name.trim()
             .split(" ")
+            .filter { it.isNotEmpty() }
             .take(2)
             .mapNotNull { it.firstOrNull()?.uppercaseChar() }
             .joinToString("")
-            .ifEmpty { "U" } // Fallback for empty names
+            .ifEmpty { "?" }
     }
 
     private fun formatPhoneNumber(phone: String): String {
-        return if (phone.length == 10) {
-            "${phone.substring(0, 5)} ${phone.substring(5)}"
-        } else {
-            phone
+        val cleaned = phone.replace(Regex("[^\\d]"), "")
+        return when {
+            cleaned.length == 10 -> "${cleaned.substring(0, 5)} ${cleaned.substring(5)}"
+            cleaned.length > 10 -> "${cleaned.substring(0, cleaned.length - 10)} ${cleaned.substring(cleaned.length - 10, cleaned.length - 5)} ${cleaned.substring(cleaned.length - 5)}"
+            else -> phone
         }
     }
 
     private fun formatCurrency(amount: Double): String {
         val formatter = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
-        return formatter.format(amount).replace("₹", "₹ ")
+        return formatter.format(amount)
+    }
+
+    private fun animateView(view: View) {
+        view.animate()
+            .scaleX(1.1f)
+            .scaleY(1.1f)
+            .setDuration(150)
+            .withEndAction {
+                view.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(150)
+                    .start()
+            }
+            .start()
     }
 
     private fun showLoading(show: Boolean) {
         binding.progressBar.visibility = if (show) View.VISIBLE else View.GONE
-        binding.recyclerViewAttendance.visibility = if (show) View.GONE else View.VISIBLE
+        binding.contentScrollView.visibility = if (show) View.GONE else View.VISIBLE
 
-        // Optionally hide/show other content during loading
         if (show) {
             binding.fabEditStaff.hide()
         } else {
@@ -211,6 +305,16 @@ class StaffDetailsActivity : AppCompatActivity() {
     private fun showError(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
         showLoading(false)
+
+        // Optionally show error state UI
+        binding.errorLayout.visibility = View.VISIBLE
+        binding.errorMessage.text = message
+        binding.btnRetry.setOnClickListener {
+            intent.getStringExtra("staff_id")?.let { staffId ->
+                binding.errorLayout.visibility = View.GONE
+                loadStaffData(staffId)
+            }
+        }
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -223,26 +327,6 @@ class StaffDetailsActivity : AppCompatActivity() {
         // Refresh data when returning to the activity
         intent.getStringExtra("staff_id")?.let { staffId ->
             loadAttendanceData(staffId)
-        }
-    }
-
-    // Helper function to get current month name
-    private fun getCurrentMonthName(): String {
-        return SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date())
-    }
-
-    // Function to handle month navigation (for future implementation)
-    private fun navigateToMonth(direction: Int) {
-        // Implementation for navigating to previous/next month
-        // This can be implemented when you want to add month navigation
-        Toast.makeText(this, "Month navigation coming soon", Toast.LENGTH_SHORT).show()
-    }
-
-    // Function to export attendance data (for future implementation)
-    private fun exportAttendanceData() {
-        currentStaff?.let { staff ->
-            Toast.makeText(this, "Exporting ${staff.name}'s attendance data", Toast.LENGTH_SHORT).show()
-            // Implementation for exporting data to PDF or Excel
         }
     }
 }

@@ -16,9 +16,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.guruyuknow.hisabbook.R
 import com.guruyuknow.hisabbook.databinding.ActivityContactPickerBinding
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 class ContactPickerActivity : AppCompatActivity() {
@@ -29,12 +31,12 @@ class ContactPickerActivity : AppCompatActivity() {
 
     private val allContacts = mutableListOf<Contact>()
     private val filteredContacts = mutableListOf<Contact>()
-    private val sectionPositions = mutableMapOf<Char, Int>() // A->index in filtered list
+    private val sectionPositions = mutableMapOf<Char, Int>()
 
     private var searchJob: Job? = null
+    private val searchDebounceTime = 300L
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Edge-to-edge; we’ll apply insets manually
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
         binding = ActivityContactPickerBinding.inflate(layoutInflater)
@@ -51,8 +53,10 @@ class ContactPickerActivity : AppCompatActivity() {
 
     private fun setupToolbar() {
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = "Select Contact"
+        supportActionBar?.apply {
+            setDisplayHomeAsUpEnabled(true)
+            title = "Select Contact"
+        }
     }
 
     private fun setupRecyclerView() {
@@ -60,26 +64,57 @@ class ContactPickerActivity : AppCompatActivity() {
         contactAdapter = ContactAdapter(filteredContacts) { contact ->
             openStaffConfiguration(contact)
         }
+
         binding.recyclerViewContacts.apply {
             layoutManager = LinearLayoutManager(this@ContactPickerActivity)
             adapter = contactAdapter
             setHasFixedSize(true)
+
+            // Add item spacing
+            addItemDecoration(object : androidx.recyclerview.widget.RecyclerView.ItemDecoration() {
+                override fun getItemOffsets(
+                    outRect: android.graphics.Rect,
+                    view: View,
+                    parent: androidx.recyclerview.widget.RecyclerView,
+                    state: androidx.recyclerview.widget.RecyclerView.State
+                ) {
+                    outRect.bottom = resources.getDimensionPixelSize(R.dimen.spacing_tiny)
+                }
+            })
         }
     }
 
     private fun setupSearch() {
         binding.etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                // debounce to avoid filtering on every keystroke harshly
+                binding.btnClearSearch.visibility =
+                    if (!s.isNullOrEmpty()) View.VISIBLE else View.GONE
+            }
+
+            override fun afterTextChanged(s: Editable?) {
                 searchJob?.cancel()
                 searchJob = lifecycleScope.launch {
-                    delay(120)
-                    filterContacts(s?.toString().orEmpty())
+                    delay(searchDebounceTime)
+
+                    val query = s?.toString()?.trim().orEmpty()
+
+                    if (allContacts.size > 100) {
+                        binding.searchProgress?.visibility = View.VISIBLE
+                    }
+
+                    withContext(Dispatchers.Default) {
+                        val results = contactHelper.searchContacts(allContacts, query)
+                            .sortedBy { it.name.lowercase(Locale.getDefault()) }
+
+                        withContext(Dispatchers.Main) {
+                            filterContacts(results)
+                            binding.searchProgress?.visibility = View.GONE
+                        }
+                    }
                 }
-                binding.btnClearSearch.visibility = if (!s.isNullOrEmpty()) View.VISIBLE else View.GONE
             }
-            override fun afterTextChanged(s: Editable?) {}
         })
 
         binding.btnClearSearch.setOnClickListener {
@@ -88,33 +123,42 @@ class ContactPickerActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
-        binding.btnAddNewStaff.setOnClickListener { openManualStaffEntry() }
+        binding.btnAddNewStaff.setOnClickListener {
+            openManualStaffEntry()
+        }
     }
 
     private fun applyWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val sys = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+
             // Pad app bar for status bar
             binding.appBar.setPadding(
-                binding.appBar.paddingLeft, sys.top,
-                binding.appBar.paddingRight, binding.appBar.paddingBottom
+                binding.appBar.paddingLeft,
+                sys.top,
+                binding.appBar.paddingRight,
+                binding.appBar.paddingBottom
             )
+
             // Bottom-safe content + list
             val bottom = sys.bottom
             binding.contentContainer.updatePadding(bottom = bottom)
             binding.recyclerViewContacts.updatePadding(bottom = bottom)
+
             insets
         }
     }
 
     private fun loadContacts() {
-        binding.progressBar.visibility = View.VISIBLE
+        showLoading(true)
         binding.tvNoContacts.visibility = View.GONE
 
         lifecycleScope.launch {
             try {
-                val contacts = contactHelper.getAllContacts(this@ContactPickerActivity)
-                    .sortedBy { it.name.lowercase(Locale.getDefault()) }
+                val contacts = withContext(Dispatchers.IO) {
+                    contactHelper.getAllContacts(this@ContactPickerActivity)
+                        .sortedBy { it.name.lowercase(Locale.getDefault()) }
+                }
 
                 allContacts.clear()
                 allContacts.addAll(contacts)
@@ -124,37 +168,47 @@ class ContactPickerActivity : AppCompatActivity() {
                 contactAdapter.notifyDataSetChanged()
 
                 buildSectionsAndIndex(filteredContacts)
-                binding.progressBar.visibility = View.GONE
+                showLoading(false)
+
                 binding.tvNoContacts.visibility = if (contacts.isEmpty()) View.VISIBLE else View.GONE
 
+                // Show count
+                updateContactCount(contacts.size)
+
             } catch (e: Exception) {
-                binding.progressBar.visibility = View.GONE
+                showLoading(false)
                 Toast.makeText(
                     this@ContactPickerActivity,
-                    "Error loading contacts: ${e.message}",
+                    "Error loading contacts: ${e.localizedMessage}",
                     Toast.LENGTH_SHORT
                 ).show()
             }
         }
     }
 
-    private fun filterContacts(query: String) {
-        val results = contactHelper.searchContacts(allContacts, query)
-            .sortedBy { it.name.lowercase(Locale.getDefault()) }
-
+    private fun filterContacts(results: List<Contact>) {
         filteredContacts.clear()
         filteredContacts.addAll(results)
         contactAdapter.notifyDataSetChanged()
 
         buildSectionsAndIndex(filteredContacts)
         binding.tvNoContacts.visibility = if (results.isEmpty()) View.VISIBLE else View.GONE
+
+        updateContactCount(results.size)
     }
 
-    /** Build map for first-letter -> position, then (re)render alphabet bar */
+    private fun updateContactCount(count: Int) {
+        binding.tvResultCount?.text = when (count) {
+            0 -> "No contacts found"
+            1 -> "1 contact"
+            else -> "$count contacts"
+        }
+    }
+
     private fun buildSectionsAndIndex(list: List<Contact>) {
         sectionPositions.clear()
-        list.forEachIndexed { idx, c ->
-            val ch = c.name.firstOrNull()?.uppercaseChar() ?: '#'
+        list.forEachIndexed { idx, contact ->
+            val ch = contact.name.firstOrNull()?.uppercaseChar() ?: '#'
             sectionPositions.putIfAbsent(ch, idx)
         }
         renderAlphabetIndex()
@@ -168,19 +222,26 @@ class ContactPickerActivity : AppCompatActivity() {
         letters.forEach { ch ->
             val tv = TextView(this).apply {
                 text = ch.toString()
-                textSize = 12f
-                setPadding(8, 4, 8, 4)
+                textSize = 11f
+                setPadding(6, 3, 6, 3)
+
+                val hasSection = sectionPositions.containsKey(ch)
                 setTextColor(resources.getColor(
-                    if (sectionPositions.containsKey(ch)) R.color.colorPrimary else android.R.color.darker_gray,
+                    if (hasSection) R.color.colorPrimary else android.R.color.darker_gray,
                     null
                 ))
+
                 gravity = Gravity.CENTER
                 background = null
                 isAllCaps = true
-                setOnClickListener {
-                    sectionPositions[ch]?.let { pos ->
-                        (binding.recyclerViewContacts.layoutManager as? LinearLayoutManager)
-                            ?.scrollToPositionWithOffset(pos, 0)
+                isClickable = hasSection
+
+                if (hasSection) {
+                    setOnClickListener {
+                        sectionPositions[ch]?.let { pos ->
+                            (binding.recyclerViewContacts.layoutManager as? LinearLayoutManager)
+                                ?.scrollToPositionWithOffset(pos, 0)
+                        }
                     }
                 }
             }
@@ -203,8 +264,18 @@ class ContactPickerActivity : AppCompatActivity() {
         finish()
     }
 
+    private fun showLoading(show: Boolean) {
+        binding.progressBar.visibility = if (show) View.VISIBLE else View.GONE
+        binding.recyclerViewContacts.visibility = if (show) View.GONE else View.VISIBLE
+    }
+
     override fun onSupportNavigateUp(): Boolean {
         onBackPressedDispatcher.onBackPressed()
         return true
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        searchJob?.cancel()
     }
 }

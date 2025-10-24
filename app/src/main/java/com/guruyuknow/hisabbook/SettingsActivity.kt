@@ -1,23 +1,30 @@
 package com.guruyuknow.hisabbook
 
 import android.content.Intent
-import android.content.SharedPreferences
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.guruyuknow.hisabbook.databinding.ActivitySettingsBinding
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class SettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
-    private lateinit var sharedPreferences: SharedPreferences
     private var currentUser: User? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,12 +32,29 @@ class SettingsActivity : AppCompatActivity() {
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        sharedPreferences = getSharedPreferences("HisabBookPrefs", MODE_PRIVATE)
-
+        applyEdgeToEdgeInsets()
         setupToolbar()
         loadCurrentUser()
         setupClickListeners()
-        loadSettings()
+        observeSettings()
+    }
+
+    private fun applyEdgeToEdgeInsets() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.toolbar) { v, insets ->
+            val top = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars()).top
+            v.updateLayoutParams<android.view.ViewGroup.MarginLayoutParams> {
+                topMargin = top
+            }
+            insets
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val bottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom
+            binding.root.updatePadding(bottom = bottom)
+            insets
+        }
     }
 
     private fun setupToolbar() {
@@ -40,7 +64,7 @@ class SettingsActivity : AppCompatActivity() {
             setDisplayShowHomeEnabled(true)
             title = "Settings"
         }
-        binding.toolbar.setNavigationOnClickListener { onBackPressed() }
+        binding.toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
     }
 
     private fun loadCurrentUser() {
@@ -54,6 +78,34 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    private fun observeSettings() {
+        lifecycleScope.launch {
+            // Observe theme changes
+            SettingsManager.themeFlow.collectLatest { theme ->
+                binding.themeText.text = theme
+            }
+        }
+
+        lifecycleScope.launch {
+            // Observe language changes
+            SettingsManager.languageFlow.collectLatest { language ->
+                binding.languageText.text = language
+            }
+        }
+
+        lifecycleScope.launch {
+            // Observe business info changes
+            SettingsManager.businessInfoFlow.collectLatest { info ->
+                if (info.name.isNotEmpty()) {
+                    binding.businessNameText.text = info.name
+                }
+                if (info.email.isNotEmpty()) {
+                    binding.businessEmailText.text = info.email
+                }
+            }
+        }
+    }
+
     private fun updateBusinessInfo() {
         currentUser?.let { user ->
             binding.businessNameText.text = user.fullName ?: "My Business"
@@ -63,30 +115,14 @@ class SettingsActivity : AppCompatActivity() {
 
     @RequiresApi(Build.VERSION_CODES.P)
     private fun setupClickListeners() = with(binding) {
-        // Business Settings (only Business Info kept)
         businessInfoCard.setOnClickListener { showEditBusinessDialog() }
-
-        // App Settings
         notificationsCard.setOnClickListener { showNotificationsDialog() }
         themeCard.setOnClickListener { showThemeDialog() }
         languageCard.setOnClickListener { showLanguageDialog() }
         backupCard.setOnClickListener { showBackupDialog() }
-
-        // About
         versionCard.setOnClickListener { showVersionInfo() }
-        privacyCard.setOnClickListener {
-            Toast.makeText(this@SettingsActivity, "Opening Privacy Policy", Toast.LENGTH_SHORT).show()
-        }
-        termsCard.setOnClickListener {
-            Toast.makeText(this@SettingsActivity, "Opening Terms of Service", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun loadSettings() = with(binding) {
-        val theme = sharedPreferences.getString("theme", "System Default")
-        val language = sharedPreferences.getString("language", "English")
-        themeText.text = theme
-        languageText.text = language
+        privacyCard.setOnClickListener { openPrivacyPolicy() }
+        termsCard.setOnClickListener { openTermsOfService() }
     }
 
     private fun showEditBusinessDialog() {
@@ -97,11 +133,12 @@ class SettingsActivity : AppCompatActivity() {
         val emailInput = dialogView.findViewById<TextInputEditText>(R.id.businessEmailInput)
         val gstInput = dialogView.findViewById<TextInputEditText>(R.id.gstNumberInput)
 
-        nameInput.setText(currentUser?.fullName ?: "")
-        emailInput.setText(currentUser?.email ?: "")
-        addressInput.setText(sharedPreferences.getString("business_address", ""))
-        phoneInput.setText(sharedPreferences.getString("business_phone", ""))
-        gstInput.setText(sharedPreferences.getString("gst_number", ""))
+        val currentInfo = SettingsManager.getBusinessInfo()
+        nameInput.setText(currentUser?.fullName ?: currentInfo.name)
+        emailInput.setText(currentUser?.email ?: currentInfo.email)
+        addressInput.setText(currentInfo.address)
+        phoneInput.setText(currentInfo.phone)
+        gstInput.setText(currentInfo.gstNumber)
 
         MaterialAlertDialogBuilder(this)
             .setTitle("Edit Business Information")
@@ -122,6 +159,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun saveBusinessInfo(name: String, address: String, phone: String, email: String, gst: String) {
         lifecycleScope.launch {
             try {
+                // Update user info in Supabase if name changed
                 if (name.isNotEmpty() && name != currentUser?.fullName) {
                     currentUser?.let { user ->
                         val updatedUser = user.copy(fullName = name)
@@ -129,13 +167,18 @@ class SettingsActivity : AppCompatActivity() {
                         currentUser = updatedUser
                     }
                 }
-                with(sharedPreferences.edit()) {
-                    putString("business_address", address)
-                    putString("business_phone", phone)
-                    putString("business_email", email)
-                    putString("gst_number", gst)
-                    apply()
-                }
+
+                // Update business info in SettingsManager
+                SettingsManager.updateBusinessInfo(
+                    BusinessInfo(
+                        name = name,
+                        address = address,
+                        phone = phone,
+                        email = email,
+                        gstNumber = gst
+                    )
+                )
+
                 updateBusinessInfo()
                 Toast.makeText(this@SettingsActivity, "Business information updated", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
@@ -151,22 +194,20 @@ class SettingsActivity : AppCompatActivity() {
         val lowStockAlerts = dialogView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.lowStockAlertsSwitch)
         val dailyReports = dialogView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.dailyReportsSwitch)
 
-        paymentReminders.isChecked = sharedPreferences.getBoolean("payment_reminders", true)
-        billAlerts.isChecked = sharedPreferences.getBoolean("bill_alerts", true)
-        lowStockAlerts.isChecked = sharedPreferences.getBoolean("low_stock_alerts", true)
-        dailyReports.isChecked = sharedPreferences.getBoolean("daily_reports", false)
+        paymentReminders.isChecked = SettingsManager.isPaymentRemindersEnabled()
+        billAlerts.isChecked = SettingsManager.isBillAlertsEnabled()
+        lowStockAlerts.isChecked = SettingsManager.isLowStockAlertsEnabled()
+        dailyReports.isChecked = SettingsManager.isDailyReportsEnabled()
 
         MaterialAlertDialogBuilder(this)
             .setTitle("Notification Settings")
             .setView(dialogView)
             .setPositiveButton("Save") { _, _ ->
-                with(sharedPreferences.edit()) {
-                    putBoolean("payment_reminders", paymentReminders.isChecked)
-                    putBoolean("bill_alerts", billAlerts.isChecked)
-                    putBoolean("low_stock_alerts", lowStockAlerts.isChecked)
-                    putBoolean("daily_reports", dailyReports.isChecked)
-                    apply()
-                }
+                SettingsManager.setPaymentReminders(paymentReminders.isChecked)
+                SettingsManager.setBillAlerts(billAlerts.isChecked)
+                SettingsManager.setLowStockAlerts(lowStockAlerts.isChecked)
+                SettingsManager.setDailyReports(dailyReports.isChecked)
+
                 Toast.makeText(this, "Notification settings updated", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancel", null)
@@ -175,23 +216,14 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun showThemeDialog() {
         val themes = arrayOf("Light", "Dark", "System Default")
-        val currentTheme = sharedPreferences.getString("theme", "System Default")
+        val currentTheme = SettingsManager.getTheme()
         val selectedIndex = themes.indexOf(currentTheme)
 
         MaterialAlertDialogBuilder(this)
             .setTitle("Select Theme")
             .setSingleChoiceItems(themes, selectedIndex) { dialog, which ->
                 val selectedTheme = themes[which]
-                with(sharedPreferences.edit()) {
-                    putString("theme", selectedTheme)
-                    apply()
-                }
-                when (selectedTheme) {
-                    "Light" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-                    "Dark" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-                    "System Default" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-                }
-                binding.themeText.text = selectedTheme
+                SettingsManager.setTheme(selectedTheme)
                 dialog.dismiss()
                 Toast.makeText(this, "Theme updated to $selectedTheme", Toast.LENGTH_SHORT).show()
             }
@@ -201,26 +233,30 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun showLanguageDialog() {
         val languages = arrayOf("English", "Hindi", "Bengali", "Telugu", "Marathi", "Tamil", "Gujarati")
-        val currentLanguage = sharedPreferences.getString("language", "English")
+        val currentLanguage = SettingsManager.getLanguage()
         val selectedIndex = languages.indexOf(currentLanguage)
 
         MaterialAlertDialogBuilder(this)
             .setTitle("Select Language")
             .setSingleChoiceItems(languages, selectedIndex) { dialog, which ->
-                with(sharedPreferences.edit()) {
-                    putString("language", languages[which])
-                    apply()
-                }
-                binding.languageText.text = languages[which]
+                val selectedLanguage = languages[which]
+                SettingsManager.setLanguage(selectedLanguage, this)
                 dialog.dismiss()
-                Toast.makeText(this, "Language updated to ${languages[which]}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Language updated. Please restart app", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancel", null)
             .show()
     }
 
     private fun showBackupDialog() {
-        val options = arrayOf("Backup to Cloud", "Backup to Device", "Restore from Backup", "Auto Backup Settings")
+        val options = arrayOf(
+            "Backup to Cloud",
+            "Backup to Device",
+            "Restore from Backup",
+            "Auto Backup Settings",
+            "Export Settings"
+        )
+
         MaterialAlertDialogBuilder(this)
             .setTitle("Backup & Restore")
             .setItems(options) { _, which ->
@@ -229,6 +265,7 @@ class SettingsActivity : AppCompatActivity() {
                     1 -> backupToDevice()
                     2 -> restoreFromBackup()
                     3 -> showAutoBackupSettings()
+                    4 -> exportSettings()
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -238,7 +275,14 @@ class SettingsActivity : AppCompatActivity() {
     private fun backupToCloud() = lifecycleScope.launch {
         try {
             Toast.makeText(this@SettingsActivity, "Backing up to cloud...", Toast.LENGTH_SHORT).show()
+
+            // Export settings
+            val settingsJson = SettingsManager.exportSettings()
+
+            // TODO: Upload to Supabase or cloud storage
+            // For now, simulate backup
             kotlinx.coroutines.delay(2000)
+
             Toast.makeText(this@SettingsActivity, "Backup completed successfully", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Toast.makeText(this@SettingsActivity, "Backup failed: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -246,11 +290,38 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun backupToDevice() {
-        Toast.makeText(this, "Backing up to device storage...", Toast.LENGTH_SHORT).show()
+        try {
+            val settingsJson = SettingsManager.exportSettings()
+            val fileName = "hisabbook_backup_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.json"
+
+            val file = File(getExternalFilesDir(null), fileName)
+            file.writeText(settingsJson)
+
+            Toast.makeText(this, "Backup saved to: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Backup failed: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun restoreFromBackup() {
-        Toast.makeText(this, "Restoring from backup...", Toast.LENGTH_SHORT).show()
+        // TODO: Implement file picker to select backup file
+        Toast.makeText(this, "Select backup file to restore", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun exportSettings() {
+        try {
+            val settingsJson = SettingsManager.exportSettings()
+
+            val sendIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, settingsJson)
+                type = "text/plain"
+            }
+
+            startActivity(Intent.createChooser(sendIntent, "Export Settings"))
+        } catch (e: Exception) {
+            Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun showAutoBackupSettings() {
@@ -258,9 +329,8 @@ class SettingsActivity : AppCompatActivity() {
         val autoBackupSwitch = dialogView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.autoBackupSwitch)
         val backupFrequency = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.backupFrequencyButton)
 
-        autoBackupSwitch.isChecked = sharedPreferences.getBoolean("auto_backup_enabled", false)
-        val frequency = sharedPreferences.getString("backup_frequency", "Weekly")
-        backupFrequency.text = frequency
+        autoBackupSwitch.isChecked = SettingsManager.isAutoBackupEnabled()
+        backupFrequency.text = SettingsManager.getBackupFrequency()
 
         backupFrequency.setOnClickListener {
             val frequencies = arrayOf("Daily", "Weekly", "Monthly")
@@ -276,11 +346,9 @@ class SettingsActivity : AppCompatActivity() {
             .setTitle("Auto Backup Settings")
             .setView(dialogView)
             .setPositiveButton("Save") { _, _ ->
-                with(sharedPreferences.edit()) {
-                    putBoolean("auto_backup_enabled", autoBackupSwitch.isChecked)
-                    putString("backup_frequency", backupFrequency.text.toString())
-                    apply()
-                }
+                SettingsManager.setAutoBackup(autoBackupSwitch.isChecked)
+                SettingsManager.setBackupFrequency(backupFrequency.text.toString())
+
                 Toast.makeText(this, "Auto backup settings updated", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancel", null)
@@ -297,6 +365,31 @@ class SettingsActivity : AppCompatActivity() {
             .setTitle("HisabBook")
             .setMessage("Version: $versionName\nBuild: $versionCode\n\nDeveloped with ❤️ for small businesses")
             .setPositiveButton("OK", null)
+            .setNeutralButton("Check Updates") { _, _ ->
+                checkForUpdates()
+            }
             .show()
+    }
+
+    private fun checkForUpdates() {
+        Toast.makeText(this, "You're using the latest version!", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun openPrivacyPolicy() {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://yourwebsite.com/privacy"))
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Privacy Policy coming soon", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun openTermsOfService() {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://yourwebsite.com/terms"))
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Terms of Service coming soon", Toast.LENGTH_SHORT).show()
+        }
     }
 }

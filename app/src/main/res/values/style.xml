@@ -20,4 +20,17 @@
     <style name="DatePickerStyle" parent="android:Widget.Material.DatePicker">
         <item name="android:headerBackground">@color/colorPrimary</item>
     </style>
+    <style name="FullscreenDialogStyle" parent="ThemeOverlay.MaterialComponents.Dialog">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+    <style name="RoundedImageTop">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">12dp</item>
+        <item name="cornerSizeTopRight">12dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
 </resources>

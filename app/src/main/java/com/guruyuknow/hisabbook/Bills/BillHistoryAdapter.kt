@@ -1,5 +1,6 @@
 package com.guruyuknow.hisabbook.Bills
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.lifecycle.LifecycleOwner
@@ -14,6 +15,10 @@ import java.util.Locale
 
 class BillHistoryAdapter(private val lifecycleOwner: LifecycleOwner) :
     ListAdapter<SupabaseCashbook.BillWithEntry, BillHistoryAdapter.VH>(Diff) {
+
+    companion object {
+        private const val TAG = "BillHistoryAdapter"
+    }
 
     object Diff : DiffUtil.ItemCallback<SupabaseCashbook.BillWithEntry>() {
         override fun areItemsTheSame(o: SupabaseCashbook.BillWithEntry, n: SupabaseCashbook.BillWithEntry) = o.id == n.id
@@ -31,12 +36,23 @@ class BillHistoryAdapter(private val lifecycleOwner: LifecycleOwner) :
         val bill = getItem(position)
         val entry = bill.entry
 
-        // Amount: prefer entry.amount; fallback to extractedAmount
-        val amountValue = bill.entry?.amount ?: bill.extractedAmount ?: 0.0
+        // FIXED: Properly get amount from cashbook entry (this is the actual bill total)
+        val amountValue = entry?.amount ?: run {
+            // Only use extractedAmount as fallback if entry amount is null
+            Log.w(TAG, "Bill ${bill.id}: entry.amount is null, using extractedAmount=${bill.extractedAmount}")
+            bill.extractedAmount ?: 0.0
+        }
 
-        val amountStr = NumberFormat.getCurrencyInstance(Locale("en", "IN")).format(amountValue)
+        // Debug log
+        Log.d(TAG, "Bill ${bill.id}: amountString='${entry?.amountString}', parsed amount=$amountValue")
 
-        // Title: ₹ • Category
+        val amountStr = try {
+            NumberFormat.getCurrencyInstance(Locale("en", "IN")).format(amountValue)
+        } catch (e: Exception) {
+            "₹$amountValue"
+        }
+
+        // Title: ₹Amount • Category
         val category = entry?.category ?: "Uncategorized"
         holder.b.tvTitle.text = "$amountStr • $category"
 
@@ -44,13 +60,18 @@ class BillHistoryAdapter(private val lifecycleOwner: LifecycleOwner) :
         val date = entry?.date.orEmpty()
         val payment = entry?.paymentMethod.orEmpty()
         val type = entry?.type.orEmpty()
-        holder.b.tvSubtitle.text = listOf(date, payment, type).filter { it.isNotBlank() }.joinToString(" • ")
+        holder.b.tvSubtitle.text = listOf(date, payment, type)
+            .filter { it.isNotBlank() }
+            .joinToString(" • ")
 
         // Description: prefer entry.description; fallback to extractedText
         val desc = when {
             !entry?.description.isNullOrBlank() -> entry!!.description!!
-            !bill.extractedText.isNullOrBlank() -> bill.extractedText!!.take(120)
-            else -> ""
+            !bill.extractedText.isNullOrBlank() -> {
+                val truncated = bill.extractedText!!.take(120)
+                if (bill.extractedText!!.length > 120) "$truncated..." else truncated
+            }
+            else -> "No description"
         }
         holder.b.tvDesc.text = desc
 
@@ -68,11 +89,11 @@ class BillHistoryAdapter(private val lifecycleOwner: LifecycleOwner) :
             holder.b.imgThumb.alpha = 0.5f
         }
 
-        // Click (you can navigate to detail if needed)
+        // Click handler
         holder.itemView.setOnClickListener {
             android.widget.Toast.makeText(
                 holder.itemView.context,
-                "Bill ID: ${bill.id}\nAmount: $amountStr",
+                "Bill ID: ${bill.id}\nAmount: $amountStr\nDate: ${entry?.date ?: "N/A"}",
                 android.widget.Toast.LENGTH_SHORT
             ).show()
         }

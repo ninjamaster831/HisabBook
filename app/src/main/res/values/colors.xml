@@ -23,7 +23,7 @@
     <color name="transparent">#00000000</color>
     <color name="gray_light">#F5F5F5</color>
     <color name="gray_dark">#424242</color>
-
+    <color name="brand_teal">#7DD3CE</color>
     <color name="hsb_primary">#2E7D32</color>
     <color name="hsb_primary_dark">#215C25</color>
     <color name="hsb_primary_20">#332E7D32</color>
@@ -34,19 +34,26 @@
         <color name="colorPrimaryDark">#3700B3</color>
         <color name="colorAccent">#03DAC5</color>
         <color name="gray">#757575</color>
+    <color name="brand_green">#10B981</color>
 
+    <!-- Neutrals used in selectors -->
+    <color name="gray_600">#6B7280</color>
+    <color name="gray_200">#E5E7EB</color>
     <color name="colorGreen">#2E7D32</color> <!-- For IN entries -->
     <color name="colorRed">#C62828</color>   <!-- For OUT entries -->
     <color name="colorGray">#757575</color>
-
+    <color name="text_tertiary">#9CA3AF</color>
     <color name="blue">#2196F3</color>
     <color name="green">#4CAF50</color>
     <color name="red">#F44336</color>
     <color name="orange">#FF9800</color>
     <color name="light_gray">#F5F5F5</color>
     <color name="dark_gray">#757575</color>
-
-
+    <color name="brand_primary">#7DD3CE</color>         <!-- matches your app accent -->
+    <color name="brand_primary_10">#1A7DD3CE</color>
+    <color name="card_stroke">#E5E7EB</color>
+    <color name="splash_text_secondary">#B3E5FC</color>
+    <color name="splash_accent">#2C74B3</color>
 
         <color name="primary_color">#5B61F6</color>
         <color name="background_color">#FFFDFE</color>
@@ -127,5 +134,5 @@
     <!-- Chip Background Selector -->
     <color name="chip_selected">#673AB7</color>
     <color name="chip_unselected">#F0F0F0</color>
-
+    <color name="icon_tint">#9E9E9E</color>
 </resources>

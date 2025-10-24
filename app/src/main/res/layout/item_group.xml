@@ -18,11 +18,12 @@
     app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
     android:clickable="true"
     android:focusable="true"
-    android:foreground="?attr/selectableItemBackground">
+    android:foreground="@color/white">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/white"
         android:padding="20dp">
 
         <!-- Group Avatar/Icon -->

@@ -85,7 +85,7 @@
                             android:text="0"
                             android:textSize="24sp"
                             android:textStyle="bold"
-                            android:textColor="#8E67E8"
+                            android:textColor="#50C9C3"
                             android:layout_marginTop="4dp" />
 
                     </LinearLayout>
@@ -200,7 +200,7 @@
                                     android:layout_height="36dp"
                                     android:layout_gravity="center"
                                     android:src="@drawable/ic_people_modern"
-                                    app:tint="#8E67E8" />
+                                    app:tint="#50C9C3" />
 
                             </com.google.android.material.card.MaterialCardView>
 
@@ -256,7 +256,7 @@
                 android:id="@+id/progressBar"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:indeterminateTint="#8E67E8" />
+                android:indeterminateTint="#50C9C3" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -282,7 +282,7 @@
         android:textStyle="bold"
         app:icon="@drawable/ic_person_add_modern"
         app:iconTint="@android:color/white"
-        app:backgroundTint="#8E67E8"
+        app:backgroundTint="#50C9C3"
         app:elevation="12dp"
         app:hoveredFocusedTranslationZ="16dp"
         app:pressedTranslationZ="16dp" />

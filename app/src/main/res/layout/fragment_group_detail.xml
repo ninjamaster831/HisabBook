@@ -2,102 +2,270 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootCoordinator"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/gradient_background_hisab">
+    android:background="#F5F7FA">
 
-    <androidx.core.widget.NestedScrollView
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true"
-        android:clipToPadding="false">
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        app:elevation="0dp">
 
-        <LinearLayout
+        <com.google.android.material.appbar.CollapsingToolbarLayout
+            android:id="@+id/collapsingToolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:background="#F5F6F5">
+            app:layout_scrollFlags="scroll|exitUntilCollapsed|snap"
+            app:contentScrim="@drawable/gradient_background_hisab"
+            app:expandedTitleMarginStart="20dp"
+            app:expandedTitleMarginBottom="16dp">
 
-            <!-- Group Header -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- Hero Section with Gradient Background -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/heroSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="#E8F5E9"
-                app:strokeColor="#C8E6C9"
-                app:strokeWidth="1dp">
+                android:background="@drawable/gradient_background_hisab"
+                android:paddingTop="24dp"
+                android:paddingBottom="32dp"
+                android:paddingHorizontal="20dp"
+                app:layout_collapseMode="parallax">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <!-- Title -->
+                <TextView
+                    android:id="@+id/tvGroupName"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp"
-                    android:background="@drawable/gradient_background_hisab">
+                    android:text="Group Name"
+                    android:textStyle="bold"
+                    android:textSize="28sp"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:textColor="#FFFFFF"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.01"
+                    android:shadowColor="#40000000"
+                    android:shadowDx="0"
+                    android:shadowDy="2"
+                    android:shadowRadius="4"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"/>
 
-                    <TextView
-                        android:id="@+id/tvGroupName"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Group Name"
-                        android:textStyle="bold"
-                        android:textSize="22sp"
-                        android:textColor="#212121"
-                        android:fontFamily="sans-serif-medium"
-                        android:layout_marginBottom="12dp"/>
+                <!-- Row: member count + budget chips (cards) -->
+                <LinearLayout
+                    android:id="@+id/groupInfoRow"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    app:layout_constraintTop_toBottomOf="@id/tvGroupName"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#33FFFFFF">
 
                         <TextView
                             android:id="@+id/tvMemberCount"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:text="0 members"
-                            android:textSize="16sp"
-                            android:textColor="#757575"
-                            android:drawablePadding="8dp"/>
+                            android:textSize="12sp"
+                            android:textColor="#FFFFFF"
+                            android:textStyle="bold"
+                            android:drawableStart="@drawable/ic_group"
+                            android:drawableTint="#FFFFFF"
+                            android:drawablePadding="6dp"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="6dp"/>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <Space
+                        android:layout_width="8dp"
+                        android:layout_height="1dp"/>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#33FFFFFF">
 
                         <TextView
                             android:id="@+id/tvBudget"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="No budget set"
-                            android:textSize="16sp"
-                            android:textColor="#757575"
-                            android:drawableStart="@drawable/ic_info"
-                            android:drawablePadding="8dp"/>
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/tvTotalExpenses"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="Total: ₹0.00"
-                        android:textSize="16sp"
-                        android:textColor="#212121"
-                        android:fontFamily="sans-serif"/>
-
-                    <TextView
-                        android:id="@+id/tvPerPerson"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Per Person: ₹0.00"
-                        android:textSize="16sp"
-                        android:textColor="#212121"
-                        android:fontFamily="sans-serif"/>
+                            android:text="No budget"
+                            android:textSize="12sp"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:textColor="#FFFFFF"
+                            android:textStyle="bold"
+                            android:drawableStart="@drawable/ic_wallet"
+                            android:drawableTint="#FFFFFF"
+                            android:drawablePadding="6dp"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="6dp"/>
+                    </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
 
-            <!-- Loading Indicator -->
+
+                <HorizontalScrollView
+                    android:id="@+id/hsvMembers"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:overScrollMode="never"
+                    android:scrollbars="none"
+                    app:layout_constraintTop_toBottomOf="@id/groupInfoRow"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chipMembers"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingEnd="8dp"
+                        app:singleLine="true"
+                        app:singleSelection="false" />
+                </HorizontalScrollView>
+
+
+                <!-- Summary Cards BELOW chip group -->
+                <LinearLayout
+                    android:id="@+id/summaryCards"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:orientation="horizontal"
+                    android:weightSum="2"
+                    app:layout_constraintTop_toBottomOf="@id/hsvMembers"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="4dp"
+                        app:cardBackgroundColor="#FFFFFF">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp"
+                            android:gravity="center">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_expense"
+                                app:tint="#1976D2"
+                                android:background="@drawable/bg_icon_circle_blue"
+                                android:padding="6dp"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="Total Expenses"
+                                android:textSize="11sp"
+                                android:textColor="#757575"
+                                android:letterSpacing="0.02"/>
+
+                            <TextView
+                                android:id="@+id/tvTotalExpenses"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="₹0.00"
+                                android:textSize="20sp"
+                                android:textStyle="bold"
+                                android:textColor="#1976D2"/>
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="4dp"
+                        app:cardBackgroundColor="#FFFFFF">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp"
+                            android:gravity="center">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_person"
+                                app:tint="#2E7D32"
+                                android:background="@drawable/bg_icon_circle_green"
+                                android:padding="6dp"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="Per Person"
+                                android:textSize="11sp"
+                                android:textColor="#757575"
+                                android:letterSpacing="0.02"/>
+
+                            <TextView
+                                android:id="@+id/tvPerPerson"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="₹0.00"
+                                android:textSize="20sp"
+                                android:textStyle="bold"
+                                android:textColor="#2E7D32"/>
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollRoot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:clipToPadding="false"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="16dp"
+            android:paddingHorizontal="20dp"
+            android:paddingBottom="100dp">
+
             <com.google.android.material.progressindicator.LinearProgressIndicator
                 android:id="@+id/progressIndicator"
                 android:layout_width="match_parent"
@@ -105,127 +273,318 @@
                 android:indeterminate="true"
                 android:visibility="gone"
                 app:indicatorColor="#1976D2"
-                app:trackColor="#E0F2E9"
-                android:layout_marginVertical="8dp"/>
+                app:trackColor="#E3F2FD"
+                app:trackCornerRadius="8dp"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Quick Actions Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Quick Actions"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="#212121"
+                        android:layout_marginBottom="12dp"/>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:weightSum="3">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnViewSettlements"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="56dp"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="6dp"
+                            android:text="Settle"
+                            android:textSize="12sp"
+                            android:textAllCaps="false"
+                            app:cornerRadius="12dp"
+                            app:backgroundTint="#E8F5E9"
+                            android:textColor="#2E7D32"
+                            app:icon="@drawable/ic_calculate"
+                            app:iconTint="#2E7D32"
+                            app:iconGravity="top"
+                            app:iconSize="20dp"
+                            app:iconPadding="4dp"/>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnOpenChat"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="56dp"
+                            android:layout_weight="1"
+                            android:layout_marginHorizontal="6dp"
+                            android:text="Chat"
+                            android:textSize="12sp"
+                            android:textAllCaps="false"
+                            app:cornerRadius="12dp"
+                            app:backgroundTint="#E3F2FD"
+                            android:textColor="#1976D2"
+                            app:icon="@drawable/ic_chat"
+                            app:iconTint="#1976D2"
+                            app:iconGravity="top"
+                            app:iconSize="20dp"
+                            app:iconPadding="4dp"/>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnAddMember"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="56dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="6dp"
+                            android:text="Add member"
+                            android:textSize="12sp"
+                            android:textAllCaps="false"
+                            app:cornerRadius="12dp"
+                            app:backgroundTint="#FFF3E0"
+                            android:textColor="#EF6C00"
+                            app:icon="@drawable/ic_person_add"
+                            app:iconTint="#EF6C00"
+                            app:iconGravity="top"
+                            app:iconSize="20dp"
+                            app:iconPadding="4dp"/>
+
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Balances Section -->
-            <TextView
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cvBalances"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="8dp"
-                android:text="Balances"
-                android:textStyle="bold"
-                android:textSize="20sp"
-                android:textColor="#212121"
-                android:fontFamily="sans-serif-medium"/>
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#FFFFFF">
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvBalances"
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="16dp">
+
+                        <View
+                            android:layout_width="4dp"
+                            android:layout_height="24dp"
+                            android:background="@drawable/bg_accent_bar_blue"
+                            android:layout_marginEnd="12dp"/>
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Balances"
+                            android:textStyle="bold"
+                            android:textSize="16sp"
+                            android:textColor="#212121"/>
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_balance"
+                            app:tint="#1976D2"/>
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F0F0F0"
+                        android:layout_marginHorizontal="16dp"/>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvBalances"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        android:padding="16dp"
+                        android:clipToPadding="false"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Recent Expenses Section -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cvExpenses"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:paddingBottom="12dp"
-                android:clipToPadding="false"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#FFFFFF">
 
-            <!-- Expenses Section -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="8dp"
-                android:text="Recent Expenses"
-                android:textStyle="bold"
-                android:textSize="20sp"
-                android:textColor="#212121"
-                android:fontFamily="sans-serif-medium"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvExpenses"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:paddingBottom="12dp"
-                android:clipToPadding="false"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="16dp">
 
-            <!-- Settlement Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnViewSettlements"
-                style="@style/Widget.Material3.Button.ElevatedButton"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="12dp"
-                android:text="Calculate Settlements"
-                android:textSize="16sp"
-                android:fontFamily="sans-serif-medium"
-                app:cornerRadius="12dp"
-                app:backgroundTint="#2E7D32"
-                app:icon="@drawable/ic_calculate"
-                app:iconGravity="start"
-                app:iconPadding="8dp"/>
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnOpenChat"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginBottom="12dp"
-                android:text="Open Group Chat"
-                android:textSize="16sp"
-                app:cornerRadius="12dp"
-                app:backgroundTint="#1976D2"
-                app:iconGravity="start"
-                app:iconPadding="8dp"/>
+                        <View
+                            android:layout_width="4dp"
+                            android:layout_height="24dp"
+                            android:background="@drawable/bg_accent_bar_green"
+                            android:layout_marginEnd="12dp"/>
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Recent Expenses"
+                            android:textStyle="bold"
+                            android:textSize="16sp"
+                            android:textColor="#212121"/>
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_expense"
+                            app:tint="#2E7D32"/>
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F0F0F0"
+                        android:layout_marginHorizontal="16dp"/>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvExpenses"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        android:padding="16dp"
+                        android:clipToPadding="false"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Settlements Section -->
-            <TextView
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cvSettlements"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="8dp"
-                android:text="Settlements"
-                android:textStyle="bold"
-                android:textSize="20sp"
-                android:textColor="#212121"
-                android:fontFamily="sans-serif-medium"/>
-            <TextView
-                android:id="@+id/tvNoSettlements"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="No settlements required"
-                android:textSize="14sp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:gravity="center"
-                android:visibility="gone"
-                android:layout_marginBottom="8dp"/>
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#FFFFFF">
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvSettlements"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:visibility="gone"
-                android:nestedScrollingEnabled="false"
-                android:paddingBottom="12dp"
-                android:clipToPadding="false"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="16dp">
+
+                        <View
+                            android:layout_width="4dp"
+                            android:layout_height="24dp"
+                            android:background="@drawable/bg_accent_bar_orange"
+                            android:layout_marginEnd="12dp"/>
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Settlements"
+                            android:textStyle="bold"
+                            android:textSize="16sp"
+                            android:textColor="#212121"/>
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_settlement"
+                            app:tint="#F57C00"/>
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F0F0F0"
+                        android:layout_marginHorizontal="16dp"/>
+
+                    <TextView
+                        android:id="@+id/tvNoSettlements"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="🎉 No settlements required"
+                        android:textSize="14sp"
+                        android:textColor="#9E9E9E"
+                        android:gravity="center"
+                        android:padding="32dp"
+                        android:visibility="gone"
+                        tools:visibility="visible"/>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvSettlements"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone"
+                        android:nestedScrollingEnabled="false"
+                        android:padding="16dp"
+                        android:clipToPadding="false"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <!-- Enhanced FAB -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fabAddExpense"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="24dp"
-        android:contentDescription="Add Expense"
-        app:srcCompat="@android:drawable/ic_input_add"
+        android:layout_margin="20dp"
+        android:text="Add Expense"
+        android:textSize="14sp"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-medium"
+        app:icon="@drawable/ic_add"
+        app:iconTint="#FFFFFF"
+        app:iconSize="20dp"
+        app:iconPadding="8dp"
         app:backgroundTint="#1976D2"
-        app:tint="#FFFFFF"
-        app:fabSize="normal"
         app:elevation="6dp"
         app:hoveredFocusedTranslationZ="12dp"
-        app:pressedTranslationZ="12dp"/>
+        app:pressedTranslationZ="12dp"
+        app:cornerRadius="16dp"
+        app:layout_behavior="com.google.android.material.behavior.HideBottomViewOnScrollBehavior"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

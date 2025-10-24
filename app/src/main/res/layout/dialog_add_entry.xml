@@ -13,7 +13,7 @@
         android:layout_marginBottom="16dp"
         android:hint="Amount"
         app:startIconDrawable="@drawable/ic_currency_rupee"
-        app:startIconTint="@color/colorPrimary">
+        app:startIconTint="#50C9C3">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/amountInput"
@@ -30,7 +30,7 @@
         android:layout_marginBottom="16dp"
         android:hint="Description (Optional)"
         app:startIconDrawable="@drawable/ic_description"
-        app:startIconTint="@color/colorPrimary">
+        app:startIconTint="#50C9C3">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/descriptionInput"
@@ -47,7 +47,7 @@
         android:layout_marginBottom="16dp"
         android:hint="Category (Optional)"
         app:startIconDrawable="@drawable/ic_category"
-        app:startIconTint="@color/colorPrimary">
+        app:startIconTint="#50C9C3">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/categoryInput"
@@ -63,7 +63,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:text="Payment Method"
-        android:textColor="@color/colorPrimary"
+        android:textColor="@color/black"
         android:textSize="16sp"
         android:textStyle="bold" />
 
@@ -82,7 +82,7 @@
             android:layout_weight="1"
             android:text="Cash"
             android:textColor="@color/white"
-            app:backgroundTint="@color/colorPrimary"
+            app:backgroundTint="#50C9C3"
             app:icon="@drawable/ic_cash"
             app:iconTint="@android:color/white" />
 
@@ -94,9 +94,9 @@
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:text="Online"
-            android:textColor="@color/colorPrimary"
+            android:textColor="#50C9C3"
             app:icon="@drawable/ic_credit_card"
-            app:iconTint="@color/colorPrimary" />
+            app:iconTint="#50C9C3" />
 
     </LinearLayout>
 
@@ -106,7 +106,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:text="Date"
-        android:textColor="@color/colorPrimary"
+        android:textColor="@color/black"
         android:textSize="16sp"
         android:textStyle="bold" />
 
@@ -117,9 +117,9 @@
         android:layout_height="wrap_content"
         android:gravity="start|center_vertical"
         android:text="Today"
-        android:textColor="@color/colorPrimary"
+        android:textColor="#50C9C3"
         app:icon="@drawable/ic_calendar_today"
         app:iconGravity="start"
-        app:iconTint="@color/colorPrimary" />
+        app:iconTint="#50C9C3" />
 
 </LinearLayout>

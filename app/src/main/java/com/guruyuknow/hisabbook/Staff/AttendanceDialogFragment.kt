@@ -1,13 +1,13 @@
 package com.guruyuknow.hisabbook.Staff
 
 import android.app.Dialog
-import android.os.Build
 import android.os.Bundle
-import android.view.WindowManager
+import android.view.View
+import android.widget.Button
+import android.widget.ProgressBar
 import android.widget.TextView
-import androidx.annotation.RequiresApi
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.core.view.isVisible
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -25,6 +25,7 @@ class AttendanceDialogFragment : DialogFragment() {
 
     private lateinit var staffId: String
     private lateinit var staffName: String
+    private var isSaving = false
 
     companion object {
         const val RESULT_KEY = "attendance_result"
@@ -46,7 +47,6 @@ class AttendanceDialogFragment : DialogFragment() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val options = arrayOf("Present", "Absent", "Half Day", "Late")
         var selected = 0
@@ -54,32 +54,31 @@ class AttendanceDialogFragment : DialogFragment() {
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle("Mark Attendance for $staffName")
             .setSingleChoiceItems(options, selected) { _, which -> selected = which }
-            .setPositiveButton("Save", null) // we’ll override to prevent auto-dismiss
+            .setPositiveButton("Save", null)
             .setNegativeButton("Cancel", null)
             .create()
 
-        // Optional: avoid keyboard pushing dialog oddly
-        dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-
         dialog.setOnShowListener {
-            val btnSave = (dialog as AlertDialog).getButton(AlertDialog.BUTTON_POSITIVE)
-            val btnCancel = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+            val alertDialog = dialog as AlertDialog
+            val btnSave = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            val btnCancel = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE)
 
-            // Add a tiny inline "Saving..." text view (reuses dialog’s message slot)
-            val savingView = TextView(requireContext()).apply {
-                text = "Saving…"
-                setPadding(32, 24, 32, 0)
-                isVisible = false
+            // Create progress indicator
+            val progressBar = ProgressBar(requireContext()).apply {
+                visibility = View.GONE
+                setPadding(32, 24, 32, 24)
             }
-            dialog.setView(savingView)
+
+            // Add progress bar to dialog
+            try {
+                val parentLayout = alertDialog.findViewById<View>(android.R.id.content)?.parent as? android.view.ViewGroup
+                parentLayout?.addView(progressBar)
+            } catch (e: Exception) {
+                // Fallback: just show toast
+            }
 
             btnSave.setOnClickListener {
-                // keep dialog open; disable buttons during save
-                btnSave.isEnabled = false
-                btnCancel.isEnabled = false
-                savingView.isVisible = true
-                isCancelable = false
-                dialog.setCanceledOnTouchOutside(false)
+                if (isSaving) return@setOnClickListener
 
                 val status = when (selected) {
                     0 -> AttendanceStatus.PRESENT
@@ -89,80 +88,95 @@ class AttendanceDialogFragment : DialogFragment() {
                     else -> AttendanceStatus.PRESENT
                 }
 
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val ui = { block: () -> Unit -> lifecycleScope.launch(Dispatchers.Main) { block() } }
-
-                    try {
-                        val authUser = SupabaseManager.client.auth.currentUserOrNull()
-                        if (authUser == null) {
-                            ui {
-                                toast("Error: No user logged in")
-                                resetButtons(btnSave, btnCancel, savingView)
-                            }
-                            return@launch
-                        }
-                        if (staffId.isEmpty()) {
-                            ui {
-                                toast("Error: Invalid staff ID")
-                                resetButtons(btnSave, btnCancel, savingView)
-                            }
-                            return@launch
-                        }
-
-                        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                        val now = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-
-                        val attendance = Attendance(
-                            staffId = staffId,
-                            businessOwnerId = authUser.id,
-                            date = today,
-                            status = status,
-                            checkInTime = if (status == AttendanceStatus.PRESENT || status == AttendanceStatus.LATE) now else null
-                        )
-
-                        val result = SupabaseManager.markAttendance(attendance)
-                        if (result.isSuccess) {
-                            ui {
-                                toast("Attendance marked")
-                                parentFragmentManager.setFragmentResult(RESULT_KEY, Bundle().apply {
-                                    putBoolean(RESULT_OK, true)
-                                })
-                                // now it’s safe to dismiss; job already completed
-                                dismissAllowingStateLoss()
-                            }
-                        } else {
-                            val msg = result.exceptionOrNull()?.message ?: "Unknown error"
-                            ui {
-                                toast("Error: $msg")
-                                resetButtons(btnSave, btnCancel, savingView)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        ui {
-                            toast("Error: ${e.message ?: "Operation failed"}")
-                            resetButtons(btnSave, btnCancel, savingView)
-                        }
-                    }
-                }
+                saveAttendance(status, btnSave, btnCancel, progressBar)
             }
         }
+
         return dialog
     }
 
-    private fun resetButtons(
-        btnSave: android.widget.Button,
-        btnCancel: android.widget.Button,
-        savingView: TextView
+    private fun saveAttendance(
+        status: AttendanceStatus,
+        btnSave: Button,
+        btnCancel: Button,
+        progressBar: ProgressBar
     ) {
-        btnSave.isEnabled = true
-        btnCancel.isEnabled = true
-        savingView.isVisible = false
-        isCancelable = true
-        dialog?.setCanceledOnTouchOutside(true)
+        isSaving = true
+        btnSave.isEnabled = false
+        btnCancel.isEnabled = false
+        progressBar.visibility = View.VISIBLE
+        isCancelable = false
+
+        lifecycleScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    val authUser = SupabaseManager.client.auth.currentUserOrNull()
+                        ?: throw IllegalStateException("No user logged in")
+
+                    if (staffId.isEmpty()) {
+                        throw IllegalArgumentException("Invalid staff ID")
+                    }
+
+                    val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                    val now = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+
+                    val attendance = Attendance(
+                        staffId = staffId,
+                        businessOwnerId = authUser.id,
+                        date = today,
+                        status = status,
+                        checkInTime = if (status == AttendanceStatus.PRESENT || status == AttendanceStatus.LATE) now else null
+                    )
+
+                    SupabaseManager.markAttendance(attendance)
+                }
+
+                if (result.isSuccess) {
+                    showToast("Attendance marked successfully")
+                    parentFragmentManager.setFragmentResult(RESULT_KEY, Bundle().apply {
+                        putBoolean(RESULT_OK, true)
+                    })
+                    dismissAllowingStateLoss()
+                } else {
+                    val errorMsg = result.exceptionOrNull()?.message ?: "Unknown error"
+                    showToast("Error: $errorMsg")
+                    resetDialogState(btnSave, btnCancel, progressBar)
+                }
+            } catch (e: IllegalStateException) {
+                showToast("Please login again")
+                resetDialogState(btnSave, btnCancel, progressBar)
+            } catch (e: IllegalArgumentException) {
+                showToast("Invalid staff data")
+                resetDialogState(btnSave, btnCancel, progressBar)
+            } catch (e: Exception) {
+                val errorMsg = when {
+                    e.message?.contains("network", ignoreCase = true) == true ->
+                        "No internet connection"
+                    e.message?.contains("timeout", ignoreCase = true) == true ->
+                        "Request timed out"
+                    else -> e.message ?: "Operation failed"
+                }
+                showToast("Error: $errorMsg")
+                resetDialogState(btnSave, btnCancel, progressBar)
+            }
+        }
     }
 
-    private fun toast(msg: String) {
-        // avoid requireContext() after detach — we’re always on Main here
-        context?.let { android.widget.Toast.makeText(it, msg, android.widget.Toast.LENGTH_SHORT).show() }
+    private fun resetDialogState(
+        btnSave: Button,
+        btnCancel: Button,
+        progressBar: ProgressBar
+    ) {
+        isSaving = false
+        btnSave.isEnabled = true
+        btnCancel.isEnabled = true
+        progressBar.visibility = View.GONE
+        isCancelable = true
+    }
+
+    private fun showToast(message: String) {
+        context?.let {
+            Toast.makeText(it, message, Toast.LENGTH_SHORT).show()
+        }
     }
 }

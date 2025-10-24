@@ -96,8 +96,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:scaleType="centerCrop"
-                            android:visibility="gone"
-                            tools:src="@drawable/ic_profile_placeholder" />
+                            android:visibility="gone" />
 
                         <TextView
                             android:id="@+id/profileInitials"
@@ -485,7 +484,7 @@
         android:textColor="#FFFFFF"
         app:icon="@drawable/ic_edit"
         app:iconTint="#FFFFFF"
-        app:backgroundTint="#6366F1"
+        app:backgroundTint="#50C9C3"
         app:elevation="6dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

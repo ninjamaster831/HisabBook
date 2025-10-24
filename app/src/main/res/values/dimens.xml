@@ -2,4 +2,11 @@
 <resources>
     <dimen name="spacing_24dp">24dp</dimen>
     <dimen name="spacing_16dp">16dp</dimen>
+    <dimen name="spacing_tiny">4dp</dimen>
+    <dimen name="spacing_small">8dp</dimen>
+    <dimen name="spacing_medium">16dp</dimen>
+    <dimen name="spacing_large">24dp</dimen>
+
+    <!-- Extra large spacing: top-level separation, full-page margins -->
+    <dimen name="spacing_xlarge">32dp</dimen>
 </resources>

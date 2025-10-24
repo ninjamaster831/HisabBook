@@ -11,6 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
+        android:background="@color/white"
         android:padding="24dp">
 
         <TextView
@@ -81,6 +82,7 @@
             android:id="@+id/btnJoin"
             style="@style/Widget.Material3.Button"
             android:layout_width="match_parent"
+            android:backgroundTint="#50C9C3"
             android:layout_height="wrap_content"
             android:text="Join Group" />
     </LinearLayout>

@@ -71,9 +71,10 @@
             android:layout_height="wrap_content"
             android:padding="20dp"
             android:text="ABC123"
+            android:background="@color/white"
             android:textSize="32sp"
             android:textStyle="bold"
-            android:textColor="@color/hsb_primary"
+            android:textColor="#50C9C3"
             android:gravity="center"
             android:fontFamily="monospace"
             android:letterSpacing="0.1" />
@@ -87,6 +88,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="Copy Code"
+        android:backgroundTint="@color/white"
         android:textAllCaps="false"
         app:icon="@drawable/ic_copy"
         app:iconGravity="textStart"
@@ -99,6 +101,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="Done"
+        android:backgroundTint="#50C9C3"
         android:textAllCaps="false"
         style="@style/Widget.Material3.Button" />
 

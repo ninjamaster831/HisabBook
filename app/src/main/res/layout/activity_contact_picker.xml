@@ -11,10 +11,10 @@
 
     <!-- App Bar -->
     <com.google.android.material.appbar.AppBarLayout
-        android:id="@+id/app_bar"
+        android:id="@+id/appBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorPrimary"
+        android:background="#7DD3CE"
         app:liftOnScroll="true">
 
         <com.google.android.material.appbar.MaterialToolbar
@@ -41,7 +41,7 @@
             android:layout_margin="16dp"
             app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
-            app:strokeColor="@color/colorPrimary"
+            app:strokeColor="#7DD3CE"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -83,6 +83,26 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Small progress shown during debounced search (binding.searchProgress) -->
+        <ProgressBar
+            android:id="@+id/search_progress"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center_horizontal"
+            android:indeterminate="true"
+            android:visibility="gone" />
+
+        <!-- Result count (binding.tvResultCount) -->
+        <TextView
+            android:id="@+id/tv_result_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="4dp"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            tools:text="128 contacts" />
+
         <!-- Add New Staff -->
         <LinearLayout
             android:id="@+id/btn_add_new_staff"
@@ -109,7 +129,7 @@
                     android:layout_height="22dp"
                     android:src="@drawable/ic_add"
                     android:layout_gravity="center"
-                    app:tint="@color/colorPrimary" />
+                    app:tint="#7DD3CE" />
             </FrameLayout>
 
             <LinearLayout
@@ -125,7 +145,7 @@
                     android:text="Add New Staff"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    android:textColor="@color/colorPrimary" />
+                    android:textColor="#7DD3CE" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -140,7 +160,7 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@drawable/ic_arrow_forward"
-                app:tint="@color/colorPrimary" />
+                app:tint="#7DD3CE" />
         </LinearLayout>
 
         <!-- Alphabet Index (auto-filled A–Z) -->

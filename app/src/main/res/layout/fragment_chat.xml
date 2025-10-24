@@ -34,7 +34,7 @@
                 android:paddingEnd="24dp"
                 android:paddingTop="48dp"
                 android:paddingBottom="24dp"
-                android:background="@drawable/bg_hisabbook_premium">
+                android:background="#50C9C3">
 
                 <!-- Header Row -->
                 <LinearLayout
@@ -354,10 +354,11 @@
         android:textStyle="bold"
         android:contentDescription="Create or Join Group"
         app:icon="@drawable/ic_add_hisab"
+        app:iconTint="@android:color/white"
         app:iconSize="24dp"
         app:cornerRadius="28dp"
         app:elevation="12dp"
-        app:backgroundTint="@color/hsb_primary"
+        app:backgroundTint="#50C9C3"
         android:textColor="@android:color/white"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

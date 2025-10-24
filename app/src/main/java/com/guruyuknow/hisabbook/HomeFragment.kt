@@ -13,6 +13,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.guruyuknow.hisabbook.databinding.FragmentHomeBinding
 import com.guruyuknow.hisabbook.group.Group
@@ -21,6 +22,7 @@ import com.guruyuknow.hisabbook.group.GroupDetailFragment
 import com.guruyuknow.hisabbook.group.CreateGroupBottomSheet
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -71,10 +73,12 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         Log.d(TAG_HOME, "onViewCreated()")
         super.onViewCreated(view, savedInstanceState)
+        (activity as? MainActivity)?.showLoading()
         setupUI()
         loadDashboardData()
         loadUserEvents()
         setupGroupsSectionIfPresent()
+        (activity as? MainActivity)?.hideLoading()
 
         // Listen when an event gets created elsewhere
         parentFragmentManager.setFragmentResultListener("event_created", viewLifecycleOwner) { _, bundle ->
@@ -83,6 +87,15 @@ class HomeFragment : Fragment() {
             loadUserEvents()
             EventDetailBottomSheet.newInstance(eventId)
                 .show(parentFragmentManager, "event_detail")
+        }
+        parentFragmentManager.setFragmentResultListener("transaction_added", viewLifecycleOwner) { _, _ ->
+            Log.d(TAG_HOME, "transaction_added -> refreshing dashboard")
+            viewLifecycleOwner.lifecycleScope.launch {
+                (activity as? MainActivity)?.showLoading()
+                delay(250)
+                loadDashboardData()
+                (activity as? MainActivity)?.hideLoading()
+            }
         }
 
         // Listen when a group gets created from CreateGroupBottomSheet
@@ -248,6 +261,7 @@ class HomeFragment : Fragment() {
             staffCard.setOnClickListener    { Log.d(TAG_HOME, "staffCard clicked"); navigateToStaffManagement() }
             loansCard.setOnClickListener    { Log.d(TAG_HOME, "loansCard clicked"); navigateToLoans() }
             viewAllTransactionsBtn.setOnClickListener { Log.d(TAG_HOME, "ViewAllTransactions clicked"); navigateToAllTransactions() }
+            voiceInputBtn.setOnClickListener { openVoiceInputBottomSheet() }
         }
     }
 
@@ -348,7 +362,12 @@ class HomeFragment : Fragment() {
 
                         Toast.makeText(ctx, "Entry added successfully", Toast.LENGTH_SHORT).show()
                         dialog.dismiss()
-                        loadDashboardData()
+                        (activity as? MainActivity)?.showLoading()
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            delay(300)
+                            loadDashboardData()
+                            (activity as? MainActivity)?.hideLoading()
+                        }
                     } catch (e: Exception) {
                         Log.e(TAG_HOME, "Error adding entry", e)
                         Toast.makeText(ctx, "Error adding entry: ${e.message}", Toast.LENGTH_LONG).show()
@@ -358,6 +377,14 @@ class HomeFragment : Fragment() {
         }
 
         dialog.show()
+    }
+    private fun openVoiceInputBottomSheet() {
+        try {
+            VoiceInputBottomSheet().show(parentFragmentManager, "voice_input")
+        } catch (e: Exception) {
+            Log.e(TAG_HOME, "Failed to open VoiceInputBottomSheet", e)
+            Toast.makeText(requireContext(), "Unable to open voice input", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun updatePaymentMethodButtonsFromHome(
@@ -511,11 +538,18 @@ class HomeFragment : Fragment() {
             if (isAdded) Toast.makeText(requireActivity(), message, Toast.LENGTH_LONG).show()
         }
     }
-
     override fun onResume() {
         super.onResume()
         Log.d(TAG_HOME, "onResume(): refreshing dashboard")
-        loadDashboardData()
+
+        // Show loading while refreshing
+        (activity as? MainActivity)?.showLoading()
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            delay(300)
+            loadDashboardData()
+            (activity as? MainActivity)?.hideLoading()
+        }
     }
 
     override fun onDestroyView() {

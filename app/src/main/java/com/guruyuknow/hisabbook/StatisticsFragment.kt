@@ -14,7 +14,9 @@ import android.widget.TextView
 import android.widget.ProgressBar
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.github.mikephil.charting.charts.*
@@ -90,8 +92,14 @@ class StatisticsFragment : Fragment() {
         initAIViews(view)
         setupRecyclerViews()
         setupVoiceAssistant()
-        loadDataFromDatabase()
-        setupUI()
+
+        // ✅ Tie async/UI work to VIEW lifecycle to avoid running after view is destroyed
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // Load + render while the view is STARTED (auto-cancels on STOPPED)
+                loadDataFromDatabase()
+            }
+        }
     }
 
     private fun initViews(view: View) {
@@ -155,7 +163,8 @@ class StatisticsFragment : Fragment() {
     }
 
     private fun loadDataFromDatabase() {
-        lifecycleScope.launch {
+        // ✅ Use viewLifecycleOwner scope (cancels when view is destroyed)
+        viewLifecycleOwner.lifecycleScope.launch {
             val user = SupabaseManager.getCurrentUser() ?: return@launch
 
             // Reset data
@@ -167,6 +176,9 @@ class StatisticsFragment : Fragment() {
             staffMonthlyData.clear()
             aiInsights.clear()
             detectedAnomalies.clear()
+            savingsChallenges.clear()
+            cashFlowPredictions.clear()
+            businessHealthMetrics = null
 
             // Load existing data (keeping your original logic)
             loadExistingData(user.id!!)
@@ -174,11 +186,15 @@ class StatisticsFragment : Fragment() {
             // Generate AI insights
             generateAIInsights()
 
-            // Setup UI with AI features
+            // ✅ Only touch UI if the view is still there
+            val root = view ?: return@launch
+            if (!isAdded) return@launch
+
             setupUI()
-            setupAIFeatures()
+            setupAIFeatures(root)
         }
     }
+
 
     private suspend fun loadExistingData(userId: String) {
         // Your existing data loading logic
@@ -422,14 +438,15 @@ class StatisticsFragment : Fragment() {
         }
     }
 
-    private fun setupAIFeatures() {
+    private fun setupAIFeatures(root: View) {
         setupBusinessHealthScore()
         setupAIInsights()
         setupAnomalyDetection()
         setupCashFlowPrediction()
         setupSavingsChallenges()
-        setupSmartFilters()
+        setupSmartFilters() // pass root
     }
+
 
     private fun setupBusinessHealthScore() {
         businessHealthMetrics?.let { metrics ->

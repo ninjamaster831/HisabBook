@@ -176,7 +176,7 @@ class GroupExpenseRepository {
         amount = amount,
         description = description,
         paidBy = payer.userId,
-        paidByName = payer.userName
+        paidByName = payer.userName.toString()
     )
 
     /**

@@ -29,7 +29,7 @@
             app:boxCornerRadiusTopStart="12dp"
             app:boxStrokeColor="#8E67E8"
             app:startIconDrawable="@drawable/ic_person_modern"
-            app:startIconTint="#8E67E8"
+            app:startIconTint="#50C9C3"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -58,7 +58,7 @@
             app:boxCornerRadiusTopStart="12dp"
             app:boxStrokeColor="#8E67E8"
             app:startIconDrawable="@drawable/ic_phone_modern"
-            app:startIconTint="#8E67E8"
+            app:startIconTint="#50C9C3"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText

@@ -1,13 +1,12 @@
 package com.guruyuknow.hisabbook.Staff
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.text.SimpleDateFormat
 import java.util.*
 
 @Serializable
-data class Salary @RequiresApi(Build.VERSION_CODES.O) constructor(
+data class Salary(
     val id: String = UUID.randomUUID().toString(),
     @SerialName("staff_id") val staffId: String,
     @SerialName("business_owner_id") val businessOwnerId: String,
@@ -24,5 +23,21 @@ data class Salary @RequiresApi(Build.VERSION_CODES.O) constructor(
     @SerialName("final_salary") val finalSalary: Double,
     @SerialName("is_paid") val isPaid: Boolean = false,
     @SerialName("paid_date") val paidDate: String? = null,
-    @SerialName("created_at") val createdAt: String = Date().toInstant().toString()
+    @SerialName("created_at") val createdAt: String = getCurrentTimestamp()
 )
+
+private fun getCurrentTimestamp(): String {
+    return try {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            java.time.Instant.now().toString()
+        } else {
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }.format(Date())
+        }
+    } catch (e: Exception) {
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }.format(Date())
+    }
+}

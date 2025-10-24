@@ -113,7 +113,7 @@
                                     android:layout_height="36dp"
                                     android:layout_gravity="center"
                                     android:src="@drawable/ic_shopping_cart_modern"
-                                    app:tint="#8E67E8" />
+                                    app:tint="#7DD3CE" />
 
                             </com.google.android.material.card.MaterialCardView>
 
@@ -209,9 +209,9 @@
                 app:boxCornerRadiusBottomStart="16dp"
                 app:boxCornerRadiusTopEnd="16dp"
                 app:boxCornerRadiusTopStart="16dp"
-                app:boxStrokeColor="#8E67E8"
+                app:boxStrokeColor="#7DD3CE"
                 app:startIconDrawable="@drawable/ic_note_modern"
-                app:startIconTint="#8E67E8"
+                app:startIconTint="#7DD3CE"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -272,7 +272,7 @@
                 android:id="@+id/progressBar"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:indeterminateTint="#8E67E8" />
+                android:indeterminateTint="#7DD3CE" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -298,7 +298,7 @@
         android:textStyle="bold"
         app:icon="@drawable/ic_add_modern"
         app:iconTint="@android:color/white"
-        app:backgroundTint="#8E67E8"
+        app:backgroundTint="#7DD3CE"
         app:elevation="12dp"
         app:hoveredFocusedTranslationZ="16dp"
         app:pressedTranslationZ="16dp" />

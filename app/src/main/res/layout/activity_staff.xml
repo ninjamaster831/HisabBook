@@ -14,9 +14,9 @@
         android:id="@+id/app_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorPrimary"
+        android:background="#50C9C3"
         android:fitsSystemWindows="false"
-        app:statusBarForeground="?attr/colorPrimaryVariant"
+        app:statusBarForeground="#50C9C3"
         app:liftOnScroll="true">
 
         <com.google.android.material.appbar.MaterialToolbar
@@ -29,7 +29,7 @@
             app:popupTheme="@style/ThemeOverlay.MaterialComponents.Light"/>
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- EMPTY STATE -->
+    <!-- EMPTY STATE (hidden by default) -->
     <LinearLayout
         android:id="@+id/layout_empty"
         android:layout_width="match_parent"
@@ -37,6 +37,7 @@
         android:orientation="vertical"
         android:gravity="center"
         android:padding="24dp"
+        android:visibility="gone"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <ImageView
@@ -44,20 +45,23 @@
             android:layout_height="180dp"
             android:src="@drawable/ic_add_staff"
             android:contentDescription="@string/app_name"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="16dp"
+            app:tint="#50C9C3" />
 
         <TextView
+            android:id="@+id/tv_empty_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Add Staff"
+            android:text="No Staff Members Yet"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
             android:textColor="?attr/colorOnSurface"
             android:layout_marginBottom="8dp" />
 
         <TextView
+            android:id="@+id/tv_empty_message"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Add Staff, Business Partners or Family members"
+            android:text="Add your first staff member to start tracking attendance and managing salaries"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:gravity="center"
@@ -70,259 +74,260 @@
             android:layout_height="wrap_content"
             android:text="ADD STAFF"
             app:cornerRadius="24dp"
+            app:icon="@drawable/ic_add_person"
             android:paddingHorizontal="28dp" />
     </LinearLayout>
 
-    <!-- CONTENT -->
-    <LinearLayout
-        android:id="@+id/layout_content"
+    <!-- CONTENT WITH SWIPE REFRESH (VISIBLE by default so content can show) -->
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:visibility="gone"
+        android:visibility="visible"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <!-- Summary Card -->
-        <com.google.android.material.card.MaterialCardView
+        <LinearLayout
+            android:id="@+id/layout_content"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="3dp">
+            android:layout_height="match_parent"
+            android:background="@color/white"
+            android:orientation="vertical">
 
-            <LinearLayout
+            <!-- Summary Card -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:layout_margin="16dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="3dp">
 
-                <!-- Header row -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:orientation="vertical"
+                    android:background="@color/white"
+                    android:padding="16dp">
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Overview"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tv_attendance_date"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Attendance — 24 Aug 2025"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
-                </LinearLayout>
-
-                <!-- Body row -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="12dp">
-
-                    <!-- Total Due -->
+                    <!-- Header row -->
                     <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Total Due"
-                            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-
-                        <TextView
-                            android:id="@+id/tv_total_due"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="₹0"
-                            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
-                            android:textStyle="bold"
-                            android:layout_marginTop="2dp" />
-
-                        <TextView
-                            android:id="@+id/tv_staff_count"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="for 0 staff"
-                            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:layout_marginTop="2dp" />
-                    </LinearLayout>
-
-                    <!-- Attendance summary -->
-                    <LinearLayout
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="end"
-                        android:layout_marginStart="12dp">
+                        android:gravity="center_vertical">
 
-                        <!-- Present -->
-                        <LinearLayout
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Today's Overview"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_attendance_date"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:layout_marginEnd="16dp"
-                            android:gravity="center_vertical">
+                            tools:text="24 Aug 2025"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+
+                    <!-- Body row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="12dp">
+
+                        <!-- Total Due -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
 
                             <TextView
-                                android:id="@+id/tv_present_count"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="0"
-                                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
-                                android:textStyle="bold" />
+                                android:text="Total Due"
+                                android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
 
                             <TextView
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:text="P"
-                                android:gravity="center"
-                                android:textColor="@android:color/white"
-                                android:textSize="12sp"
-                                android:layout_marginStart="6dp"
-                                android:background="@drawable/circle_green" />
+                                android:id="@+id/tv_total_due"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="₹0"
+                                android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
+                                android:textStyle="bold"
+                                android:layout_marginTop="2dp" />
+
+                            <TextView
+                                android:id="@+id/tv_staff_count"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0 staff"
+                                android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:layout_marginTop="2dp" />
                         </LinearLayout>
 
-                        <!-- Absent -->
+                        <!-- Attendance summary -->
                         <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
-                            android:layout_marginEnd="16dp"
-                            android:gravity="center_vertical">
+                            android:gravity="end"
+                            android:layout_marginStart="12dp">
 
-                            <TextView
-                                android:id="@+id/tv_absent_count"
+                            <!-- Present -->
+                            <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="0"
-                                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
-                                android:textStyle="bold" />
+                                android:orientation="horizontal"
+                                android:layout_marginEnd="12dp"
+                                android:gravity="center_vertical">
 
-                            <TextView
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:text="A"
-                                android:gravity="center"
-                                android:textColor="@android:color/white"
-                                android:textSize="12sp"
-                                android:layout_marginStart="6dp"
-                                android:background="@drawable/circle_red" />
-                        </LinearLayout>
+                                <TextView
+                                    android:id="@+id/tv_present_count"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="0"
+                                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                                    android:textStyle="bold"
+                                    android:minWidth="24dp"
+                                    android:gravity="end" />
 
-                        <!-- Half-Day -->
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:layout_marginEnd="16dp"
-                            android:gravity="center_vertical">
+                                <TextView
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:text="P"
+                                    android:gravity="center"
+                                    android:textColor="@android:color/white"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold"
+                                    android:layout_marginStart="4dp"
+                                    android:background="@drawable/circle_green"
+                                    android:contentDescription="Present" />
+                            </LinearLayout>
 
-                            <TextView
-                                android:id="@+id/tv_half_day_count"
+                            <!-- Absent -->
+                            <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="0"
-                                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
-                                android:textStyle="bold" />
+                                android:orientation="horizontal"
+                                android:layout_marginEnd="12dp"
+                                android:gravity="center_vertical">
 
-                            <TextView
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:text="H"
-                                android:gravity="center"
-                                android:textColor="@android:color/white"
-                                android:textSize="12sp"
-                                android:layout_marginStart="6dp"
-                                android:background="@drawable/circle_yellow" />
-                        </LinearLayout>
+                                <TextView
+                                    android:id="@+id/tv_absent_count"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="0"
+                                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                                    android:textStyle="bold"
+                                    android:minWidth="24dp"
+                                    android:gravity="end" />
 
-                        <!-- Paid Leave -->
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
+                                <TextView
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:text="A"
+                                    android:gravity="center"
+                                    android:textColor="@android:color/white"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold"
+                                    android:layout_marginStart="4dp"
+                                    android:background="@drawable/circle_red"
+                                    android:contentDescription="Absent" />
+                            </LinearLayout>
 
-                            <TextView
-                                android:id="@+id/tv_paid_leave_count"
+                            <!-- Half-Day -->
+                            <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="0"
-                                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
-                                android:textStyle="bold" />
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical">
 
-                            <TextView
-                                android:layout_width="32dp"
-                                android:layout_height="24dp"
-                                android:text="PL"
-                                android:gravity="center"
-                                android:textColor="@android:color/white"
-                                android:textSize="12sp"
-                                android:layout_marginStart="6dp"
-                                android:background="@drawable/circle_blue" />
+                                <TextView
+                                    android:id="@+id/tv_half_day_count"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="0"
+                                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                                    android:textStyle="bold"
+                                    android:minWidth="24dp"
+                                    android:gravity="end" />
+
+                                <TextView
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:text="H"
+                                    android:gravity="center"
+                                    android:textColor="@android:color/white"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold"
+                                    android:layout_marginStart="4dp"
+                                    android:background="@drawable/circle_yellow"
+                                    android:contentDescription="Half Day" />
+                            </LinearLayout>
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            </com.google.android.material.card.MaterialCardView>
 
-        <!-- Filter Chips -->
-        <com.google.android.material.chip.ChipGroup
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginBottom="8dp"
-            app:singleSelection="true"
-            app:selectionRequired="true">
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_all"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
-                android:layout_width="wrap_content"
+            <!-- Filter Chips -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="All"
-                android:checked="true"
-                android:layout_marginEnd="8dp" />
+                android:scrollbars="none"
+                android:layout_marginBottom="8dp">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_salary_added"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Salary &amp; Attendance Added"
-                android:layout_marginEnd="8dp" />
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chip_group"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="16dp"
+                    app:singleSelection="true"
+                    app:selectionRequired="true">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_permission_given"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Permission Given" />
-        </com.google.android.material.chip.ChipGroup>
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_all"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="All"
+                        android:checked="true" />
 
-        <!-- Staff List -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_view_staff"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginBottom="16dp"
-            tools:listitem="@layout/item_staff" />
-    </LinearLayout>
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_salary_added"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Salary Added" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_permission_given"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="With Permissions" />
+                </com.google.android.material.chip.ChipGroup>
+            </HorizontalScrollView>
+
+            <!-- Staff List -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_view_staff"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="16dp"
+                tools:listitem="@layout/item_staff" />
+        </LinearLayout>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <!-- FAB (dodges system bars) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -333,8 +338,11 @@
         android:layout_margin="16dp"
         android:contentDescription="@string/add"
         android:src="@drawable/ic_add_person"
-        app:backgroundTint="?attr/colorPrimary"
-        app:layout_dodgeInsetEdges="bottom" />
+        app:backgroundTint="#50C9C3"
+        app:tint="@android:color/white"
+        app:layout_dodgeInsetEdges="bottom"
+        app:elevation="6dp"
+        app:pressedTranslationZ="12dp" />
 
     <!-- LOADING OVERLAY -->
     <FrameLayout
@@ -344,15 +352,34 @@
         android:background="#66000000"
         android:clickable="true"
         android:focusable="true"
-        android:visibility="gone">
+        android:visibility="gone"
+        android:elevation="10dp">
 
-        <com.google.android.material.progressindicator.CircularProgressIndicator
-            android:id="@+id/progress_bar"
-            style="?attr/circularProgressIndicatorStyle"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:indeterminate="true" />
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="24dp"
+            android:background="@drawable/rounded_background_white">
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/progress_bar"
+                style="?attr/circularProgressIndicatorStyle"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:indeterminate="true"
+                app:indicatorColor="#50C9C3" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Loading staff..."
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                android:textColor="?attr/colorOnSurface"
+                android:layout_marginTop="12dp" />
+        </LinearLayout>
     </FrameLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
