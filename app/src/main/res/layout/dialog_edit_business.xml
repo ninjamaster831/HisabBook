@@ -4,81 +4,117 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="#FFFFFF">
 
+    <!-- Business Name -->
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="12dp"
         android:hint="Business Name"
-        app:startIconDrawable="@drawable/ic_business">
+        app:startIconDrawable="@drawable/ic_business"
+        app:startIconTint="#50C9C3"
+        app:boxBackgroundMode="outline"
+        app:boxStrokeColor="#50C9C3"
+        app:hintTextColor="#50C9C3"
+        app:boxStrokeWidthFocused="2dp">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/businessNameInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textPersonName" />
-
+            android:inputType="textPersonName"
+            android:textColor="#000000"
+            android:textColorHint="#7A7A7A" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Business Address -->
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="12dp"
         android:hint="Business Address"
-        app:startIconDrawable="@drawable/ic_location_on">
+        app:startIconDrawable="@drawable/ic_location_on"
+        app:startIconTint="#50C9C3"
+        app:boxBackgroundMode="outline"
+        app:boxStrokeColor="#50C9C3"
+        app:hintTextColor="#50C9C3"
+        app:boxStrokeWidthFocused="2dp">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/businessAddressInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="textMultiLine"
-            android:maxLines="3" />
-
+            android:maxLines="3"
+            android:textColor="#000000"
+            android:textColorHint="#7A7A7A" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Business Phone -->
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="12dp"
         android:hint="Business Phone"
-        app:startIconDrawable="@drawable/ic_phone">
+        app:startIconDrawable="@drawable/ic_phone"
+        app:startIconTint="#50C9C3"
+        app:boxBackgroundMode="outline"
+        app:boxStrokeColor="#50C9C3"
+        app:hintTextColor="#50C9C3"
+        app:boxStrokeWidthFocused="2dp">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/businessPhoneInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="phone" />
-
+            android:inputType="phone"
+            android:textColor="#000000"
+            android:textColorHint="#7A7A7A" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Business Email -->
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="12dp"
         android:hint="Business Email"
-        app:startIconDrawable="@drawable/ic_email">
+        app:startIconDrawable="@drawable/ic_email"
+        app:startIconTint="#50C9C3"
+        app:boxBackgroundMode="outline"
+        app:boxStrokeColor="#50C9C3"
+        app:hintTextColor="#50C9C3"
+        app:boxStrokeWidthFocused="2dp">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/businessEmailInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textEmailAddress" />
-
+            android:inputType="textEmailAddress"
+            android:textColor="#000000"
+            android:textColorHint="#7A7A7A" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- GST Number -->
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="GST Number (Optional)"
-        app:startIconDrawable="@drawable/ic_receipt">
+        app:startIconDrawable="@drawable/ic_receipt"
+        app:startIconTint="#50C9C3"
+        app:boxBackgroundMode="outline"
+        app:boxStrokeColor="#50C9C3"
+        app:hintTextColor="#50C9C3"
+        app:boxStrokeWidthFocused="2dp">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/gstNumberInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textCapCharacters" />
-
+            android:inputType="textCapCharacters"
+            android:textColor="#000000"
+            android:textColorHint="#7A7A7A" />
     </com.google.android.material.textfield.TextInputLayout>
 
 </LinearLayout>

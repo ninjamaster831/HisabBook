@@ -1,5 +1,6 @@
 package com.guruyuknow.hisabbook
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -45,7 +46,7 @@ class ChatFragment : Fragment() {
     private lateinit var filterChipCard: MaterialCardView
     private lateinit var chipGroup: ChipGroup
     private lateinit var adapter: GroupListAdapter
-
+    private lateinit var notificationCard: MaterialCardView
     private var isFilterVisible = false
 
     override fun onCreateView(
@@ -78,6 +79,7 @@ class ChatFragment : Fragment() {
         etSearch = view.findViewById(R.id.etSearch)
         filterChipCard = view.findViewById(R.id.filterChipCard)
         chipGroup = view.findViewById(R.id.chipGroup)
+        notificationCard = view.findViewById(R.id.notification)
     }
 
     private fun setupRecycler() {
@@ -132,7 +134,10 @@ class ChatFragment : Fragment() {
         }
 
         btnFilter.setOnClickListener { toggleFilterChips() }
-
+        notificationCard.setOnClickListener {
+            animateButton(it) // Optional: Add subtle animation for feedback
+            openNotificationActivity()
+        }
         groupsRv.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 if (dy > 10 && fabCreate.isExtended) fabCreate.shrink()
@@ -140,7 +145,12 @@ class ChatFragment : Fragment() {
             }
         })
     }
-
+    private fun openNotificationActivity() {
+        val intent = Intent(requireContext(), NotificationsActivity::class.java)
+        startActivity(intent)
+        // Optional: Add transition animation
+        // requireActivity().overridePendingTransition(R.anim.slide_in_up, R.anim.slide_out_down)
+    }
     private fun setupSearchAndFilter() {
         etSearch.addTextChangedListener { text ->
             val query = text?.toString()?.trim().orEmpty()

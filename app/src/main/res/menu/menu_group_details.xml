@@ -1,0 +1,31 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+
+    <item
+        android:id="@+id/action_more"
+        android:icon="@drawable/ic_more_vert"
+        android:title="More"
+        app:iconTint="@android:color/black"
+        app:showAsAction="always">
+
+        <menu>
+            <item
+                android:id="@+id/action_edit_group"
+                android:icon="@drawable/ic_edit"
+                android:title="Edit group info" />
+            <item
+                android:id="@+id/action_share"
+                android:icon="@drawable/ic_share"
+                android:title="Share group" />
+            <item
+                android:id="@+id/action_mute"
+                android:icon="@drawable/ic_notifications_off"
+                android:title="Mute notifications" />
+            <item
+                android:id="@+id/action_report"
+                android:icon="@drawable/ic_flag"
+                android:title="Report group" />
+        </menu>
+    </item>
+</menu>

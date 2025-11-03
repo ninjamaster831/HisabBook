@@ -1,6 +1,9 @@
 package com.guruyuknow.hisabbook.group
 
+import android.app.Application
+import android.net.Uri
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -18,8 +21,7 @@ import kotlinx.serialization.Serializable
 
 private const val TAG_VM_CHAT = "GroupChatVM"
 
-class GroupExpenseViewModel : ViewModel() {
-
+class GroupExpenseViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = GroupExpenseRepository()
     private val auth get() = SupabaseManager.client.auth
 
@@ -90,7 +92,27 @@ class GroupExpenseViewModel : ViewModel() {
     // Success messages (observed in GroupChatFragment)
     private val _successMessage = MutableLiveData<String?>()
     val successMessage: LiveData<String?> = _successMessage
-
+    fun deleteGroup(groupId: Long) {
+        viewModelScope.launch {
+            _isLoading.postValue(true)
+            _errorMessage.postValue(null)
+            try {
+                val result = repository.deleteGroup(groupId)
+                if (result.isSuccess) {
+                    _successMessage.postValue("Group deleted successfully")
+                    // Reload all groups to remove deleted group from list
+                    loadAllGroups()
+                } else {
+                    _errorMessage.postValue("Failed to delete group: ${result.exceptionOrNull()?.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("GroupExpenseVM", "deleteGroup failed", e)
+                _errorMessage.postValue("Failed to delete group: ${e.message}")
+            } finally {
+                _isLoading.postValue(false)
+            }
+        }
+    }
     fun createGroup(name: String, budget: Double?, members: List<MemberInput>) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -351,26 +373,6 @@ class GroupExpenseViewModel : ViewModel() {
         }
     }
 
-    // ⚠️ LEGACY: Join using phone number (for non-authenticated users)
-    fun joinGroupByCodeWithPhone(code: String, name: String, phone: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _errorMessage.value = null
-            try {
-                val res = repository.joinGroupByCodeWithPhone(code, phone, name)
-                _joinResult.value = res
-                if (res.isSuccess) {
-                    // ✅ Reload groups to include the newly joined group
-                    loadAllGroups()
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "Failed to join: ${e.message}"
-                _joinResult.value = Result.failure(e)
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
     fun updateGroupInfo(groupId: Long, name: String, description: String) {
         viewModelScope.launch {
             _isLoading.postValue(true)

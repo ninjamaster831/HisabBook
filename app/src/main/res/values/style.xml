@@ -33,4 +33,38 @@
         <item name="cornerSizeBottomLeft">0dp</item>
         <item name="cornerSizeBottomRight">0dp</item>
     </style>
+    <style name="TextAppearance.App.CollapsingToolbar.Expanded" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    <!-- styles.xml -->
+    <style name="ShapeableImage_Rounded">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item> <!-- adjust as needed -->
+    </style>
+    <style name="ShapeableImage_Circle">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+    <!-- Full circle shape for ShapeableImageView -->
+    <style name="ShapeAppearanceOverlay.Hisab.Full" parent="">
+        <item name="cornerFamily">rounded</item>
+        <!-- 50% corner size makes a perfect circle for any width/height -->
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="TextAppearance.App.CollapsingToolbar.Collapsed" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    <style name="CustomPopupMenu" parent="Widget.MaterialComponents.PopupMenu">
+        <item name="android:popupBackground">#FFFFFF</item> <!-- White background -->
+        <item name="android:textColor">#000000</item> <!-- Black text -->
+        <item name="android:tint">#000000</item> <!-- Black icons -->
+    </style>
+
+    <style name="CircularShapeAppearance">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item> <!-- This ensures it's a perfect circle -->
+    </style>
 </resources>

@@ -1,64 +1,178 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@color/white"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="20dp">
 
-    <!-- Group Name -->
-    <com.google.android.material.textfield.TextInputLayout
+    <!-- Header Icon -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center_horizontal"
+        app:cardCornerRadius="32dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#EEF2FF">
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_edit"
+            app:tint="#4F46E5"/>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:text="Edit Group Information"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#1E293B"
+        android:fontFamily="sans-serif-medium"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="4dp"
+        android:text="Update your group name, description, and photo"
+        android:textSize="14sp"
+        android:textColor="#64748B"
+        android:gravity="center"/>
+
+    <!-- Group Picture -->
+    <!-- Group Picture -->
+    <!-- Group Picture -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Group name"
-        app:boxBackgroundMode="outline"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="112dp"
+            android:layout_height="112dp"
+            app:cardCornerRadius="56dp"
+        app:strokeWidth="3dp"
+        app:strokeColor="#FFFFFF"
+        app:cardElevation="6dp"
+        app:cardBackgroundColor="@android:color/white">
+
+        <ImageView
+            android:id="@+id/ivDialogGroupImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+        android:src="@drawable/ic_group_chat" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnChangeDialogGroupImage"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="Change photo"
+        app:icon="@drawable/ic_camera"
+        app:iconTint="#4F46E5"/>
+</LinearLayout>
+
+
+
+    <!-- Group Name Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilGroupName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:hint="Group Name"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         app:boxCornerRadiusTopStart="12dp"
         app:boxCornerRadiusTopEnd="12dp"
         app:boxCornerRadiusBottomStart="12dp"
         app:boxCornerRadiusBottomEnd="12dp"
-        app:endIconMode="clear_text">
+        app:startIconDrawable="@drawable/ic_group"
+        app:counterEnabled="true"
+        app:counterMaxLength="50"
+        app:helperText="Required">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etGroupName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textCapSentences"
-            android:maxLength="100"
-            android:singleLine="true"/>
+            android:inputType="textCapWords"
+            android:maxLength="50"
+            android:maxLines="1"/>
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- Group Description -->
+    <!-- Group Description Input -->
     <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilGroupDescription"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:hint="Group description (optional)"
-        app:boxBackgroundMode="outline"
+        android:layout_marginTop="12dp"
+        android:hint="Description (Optional)"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         app:boxCornerRadiusTopStart="12dp"
         app:boxCornerRadiusTopEnd="12dp"
         app:boxCornerRadiusBottomStart="12dp"
         app:boxCornerRadiusBottomEnd="12dp"
-        app:endIconMode="clear_text"
+        app:startIconDrawable="@drawable/ic_description"
         app:counterEnabled="true"
-        app:counterMaxLength="500">
+        app:counterMaxLength="200"
+        app:helperText="Add a brief description about the group">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etGroupDescription"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textCapSentences|textMultiLine"
-            android:maxLength="500"
+            android:inputType="textMultiLine|textCapSentences"
+            android:maxLength="200"
             android:minLines="3"
             android:maxLines="5"
-            android:gravity="top|start"/>
+            android:gravity="top|start"
+            android:scrollbars="vertical"/>
     </com.google.android.material.textfield.TextInputLayout>
 
-    <TextView
+    <!-- Info Card -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Describe what this group is about"
-        android:textSize="12sp"
-        android:textColor="#64748B"/>
+        android:layout_marginTop="12dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#EFF6FF">
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_info"
+                app:tint="#3B82F6"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:text="All group members will see the updated information"
+                android:textSize="12sp"
+                android:textColor="#1E40AF"
+                android:lineSpacingExtra="2dp"/>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 </LinearLayout>

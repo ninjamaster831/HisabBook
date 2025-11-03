@@ -627,6 +627,168 @@ class GroupExpenseRepository {
             Result.failure(e)
         }
     }
+    // --- UPDATE GROUP INFO (name + description) ---
+    suspend fun updateGroupInfo(groupId: Long, name: String, description: String?): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                supabase.from(Tables.GROUPS)
+                    .update(
+                        mapOf(
+                            "name" to name,
+                            "description" to description
+                        )
+                    ) {
+                        filter { eq("id", groupId) }
+                    }
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    // --- UPDATE ADMIN-ONLY FLAG ---
+    suspend fun updateAdminOnlySettings(groupId: Long, adminOnly: Boolean): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                supabase.from(Tables.GROUPS)
+                    .update(mapOf("admin_only" to adminOnly)) {
+                        filter { eq("id", groupId) }
+                    }
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    // --- UPLOAD GROUP IMAGE TO STORAGE AND RETURN PUBLIC URL ---
+    suspend fun uploadGroupImage(
+        context: Context,
+        groupId: Long,
+        imageUri: Uri
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            // Get the content resolver to read the image
+            val cr = context.contentResolver
+            val bytes = runInterruptible {
+                cr.openInputStream(imageUri)?.use { it.readBytes() }
+            } ?: return@withContext Result.failure(IllegalStateException("Unable to read image"))
+
+            // Log the image byte size for debugging
+            Log.d(TAG_CHAT, "Image size: ${bytes.size / 1024} KB")
+
+            // Try to infer extension from MIME type
+            val extFromMime = cr.getType(imageUri)?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
+            val ext = (extFromMime ?: "jpg").lowercase(Locale.getDefault())
+
+            // Set the bucket name as group_profile and define the object path
+            val objectPath = "group_profile/$groupId.${ext}"
+
+            // Log the object path to check if the path is being set correctly
+            Log.d(TAG_CHAT, "Uploading image to bucket: group_profile, path: $objectPath")
+
+            // Upload the image to Supabase storage
+            supabase.storage.from("group_profile").upload(objectPath, bytes, upsert = true)
+
+            // Retrieve the public URL of the uploaded image
+            val publicUrl = supabase.storage.from("group_profile").publicUrl(objectPath)
+
+            // Log the public URL to verify it
+            Log.d(TAG_CHAT, "Public URL: $publicUrl")
+
+            // Save the URL in the groups table under the image_url column
+            supabase.from("groups")
+                .update(mapOf("image_url" to publicUrl)) {
+                    filter { eq("id", groupId) }
+                }
+
+            // Return the public URL as the result
+            Result.success(publicUrl)
+        } catch (e: Exception) {
+            // Log the exception in case of failure
+            Log.e(TAG_CHAT, "Failed to upload group image", e)
+            return@withContext Result.failure(e)
+        }
+    }
+
+
+    // --- UPDATE (OR CLEAR) IMAGE URL IN DB ---
+    suspend fun updateGroupImage(groupId: Long, imageUrl: String?): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                supabase.from(Tables.GROUPS)
+                    .update(mapOf("image_url" to imageUrl)) {
+                        filter { eq("id", groupId) }
+                    }
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    // --- UPDATE MEMBER ADMIN STATUS ---
+    suspend fun updateMemberAdminStatus(groupId: Long, userId: String, isAdmin: Boolean): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                supabase.from(Tables.GROUP_MEMBERS)
+                    .update(mapOf("is_admin" to isAdmin)) {
+                        filter {
+                            eq("group_id", groupId)
+                            eq("user_id", userId)
+                        }
+                    }
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    // --- REMOVE MEMBER (and their balance row), then recalc balances ---
+    suspend fun removeMember(groupId: Long, userId: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                // Delete from balances first (FK order safety if you have constraints)
+                supabase.from(Tables.MEMBER_BALANCES).delete {
+                    filter {
+                        eq("group_id", groupId)
+                        eq("user_id", userId)
+                    }
+                }
+
+                // Delete from members
+                supabase.from(Tables.GROUP_MEMBERS).delete {
+                    filter {
+                        eq("group_id", groupId)
+                        eq("user_id", userId)
+                    }
+                }
+
+                // Recalculate after removal
+                recalculateBalances(groupId)
+
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    suspend fun deleteGroup(groupId: Long): Result<Unit> {
+        return try {
+            Log.d("GroupExpenseRepo", "Deleting group $groupId")
+
+            SupabaseManager.client
+                .from("groups")
+                .delete {
+                    filter {
+                        eq("id", groupId)
+                    }
+                }
+
+            Log.d("GroupExpenseRepo", "Group $groupId deleted successfully")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("GroupExpenseRepo", "deleteGroup failed", e)
+            Result.failure(e)
+        }
+    }
 }
 
 // Used by UI when creating a group

@@ -25,10 +25,12 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.imageview.ShapeableImageView
 import com.google.android.material.textfield.TextInputEditText
 import com.guruyuknow.hisabbook.MainActivity
 import com.guruyuknow.hisabbook.R
@@ -58,7 +60,6 @@ class GroupChatFragment : Fragment() {
     private lateinit var fabScrollToBottom: FloatingActionButton
     private lateinit var tvGroupName: TextView
     private lateinit var tvMemberCount: TextView
-    private lateinit var menuButton: ImageButton
     private lateinit var adapter: ChatMessageAdapter
     private lateinit var layoutManager: LinearLayoutManager
 
@@ -70,11 +71,13 @@ class GroupChatFragment : Fragment() {
     private lateinit var inputCard: MaterialCardView
     private lateinit var previewAdapter: PreviewImageAdapter
     private val pendingUris = mutableListOf<Uri>()
-
+    private lateinit var ivGroupAvatar: ShapeableImageView
     private var isAtBottom = true
     private var isFirstLoad = true
     private var shouldScrollToBottom = false
     private var lastMessageCount = 0
+    // fields
+    private lateinit var sendCard: MaterialCardView
 
     // Activity Result launchers
     private lateinit var pickImage: androidx.activity.result.ActivityResultLauncher<String>
@@ -116,7 +119,7 @@ class GroupChatFragment : Fragment() {
         setupListeners()
         observeData()
         setupRealtimeUpdates()
-
+        refreshSendButtonState()
         viewModel.loadGroupDetails(groupId)
         viewModel.loadMessages(groupId)
 
@@ -151,14 +154,15 @@ class GroupChatFragment : Fragment() {
         fabScrollToBottom = view.findViewById(R.id.fabScrollToBottom)
         tvGroupName = view.findViewById(R.id.tvGroupName)
         tvMemberCount = view.findViewById(R.id.tvMemberCount)
-        menuButton = view.findViewById(R.id.menuButton)
         attachCard = view.findViewById(R.id.attachCard)
         cameraCard = view.findViewById(R.id.cameraCard)
         previewCard = view.findViewById(R.id.previewCard)
         inputCard = view.findViewById(R.id.inputCard)
-
+        ivGroupAvatar = view.findViewById(R.id.ivGroupAvatar)
         tvGroupName.text = groupNameArg
         tvMemberCount.text = ""
+// in setupViews(view)
+        sendCard = view.findViewById(R.id.sendCard)
 
         toolbar.setNavigationOnClickListener { parentFragmentManager.popBackStack() }
     }
@@ -269,7 +273,6 @@ class GroupChatFragment : Fragment() {
         btnCamera.setOnClickListener { requestCameraPerm.launch(Manifest.permission.CAMERA) }
         btnEmoji.setOnClickListener { showToast("Emoji picker coming soon!") }
 
-        menuButton.setOnClickListener { showToast("Group menu coming soon!") }
 
         fabScrollToBottom.setOnClickListener {
             scrollToBottom(smooth = true)
@@ -320,8 +323,25 @@ class GroupChatFragment : Fragment() {
 
     private fun observeData() {
         viewModel.currentGroup.observe(viewLifecycleOwner) { group ->
-            tvGroupName.text = group?.name ?: groupNameArg
+            group?.let {
+                // Set group name
+                tvGroupName.text = it.name ?: "Group Chat"
+
+                // Load group avatar image if available
+                val groupImageUrl = it.imageUrl
+                if (!groupImageUrl.isNullOrBlank()) {
+                    Glide.with(requireContext())
+                        .load(groupImageUrl)
+                        .centerCrop()  // Ensure the image is cropped to fit the circular shape
+                        .into(ivGroupAvatar)
+                } else {
+                    // Set default avatar if no group image is available
+                    ivGroupAvatar.setImageResource(R.drawable.ic_group_chat)
+                }
+
+            }
         }
+
 
         viewModel.groupMembers.observe(viewLifecycleOwner) { members ->
             tvMemberCount.text = formatMembersSubtitle(members.map { it.userName ?: "" })
@@ -412,7 +432,7 @@ class GroupChatFragment : Fragment() {
     private fun refreshSendButtonState() {
         val hasText = !et.text.isNullOrBlank()
         val hasImages = pendingUris.isNotEmpty()
-
+        sendCard.isVisible = hasText || hasImages
         // Show send button if there's text or images
         btnSend.parent?.let { parent ->
             if (parent is View) {

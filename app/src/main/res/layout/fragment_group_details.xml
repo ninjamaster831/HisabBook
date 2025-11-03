@@ -5,191 +5,315 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8FAFC">
+    android:background="#F1F5F9">
 
+    <!-- AppBar with Collapsing Toolbar -->
+    <!-- AppBar with Collapsing Toolbar -->
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
+        android:background="@drawable/gradient_chat_header"
+        android:fitsSystemWindows="true"
+        app:liftOnScroll="true"
         app:elevation="0dp">
 
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
+        <com.google.android.material.appbar.CollapsingToolbarLayout
+            android:id="@+id/collapsingToolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@drawable/gradient_chat_header"
-            app:navigationIcon="@drawable/ic_arrow_back"
-            app:navigationIconTint="@android:color/white"
-            app:title="Group Info"
-            app:titleTextColor="@android:color/white"/>
+            android:layout_height="wrap_content"
+            android:fitsSystemWindows="true"
+            app:titleEnabled="false"
+            app:contentScrim="@drawable/gradient_chat_header"
+            app:layout_scrollFlags="scroll|exitUntilCollapsed">
+
+            <!-- TOP TOOLBAR (pinned) -->
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="@android:color/transparent"
+                android:fitsSystemWindows="true"
+                app:navigationIcon="@drawable/ic_arrow_back"
+                app:navigationIconTint="@android:color/white"
+                app:titleTextColor="@android:color/white"
+                app:popupTheme="@style/ThemeOverlay.Material3.Dark"
+                app:menu="@menu/menu_group_details"
+                app:layout_collapseMode="pin" />
+
+            <!-- HEADER CONTENT (below toolbar) -->
+            <LinearLayout
+                android:id="@+id/headerContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/gradient_chat_header"
+                android:gravity="center_horizontal"
+                android:paddingBottom="4dp"
+                android:layout_marginTop="?attr/actionBarSize"
+                app:layout_collapseMode="parallax"
+                app:layout_collapseParallaxMultiplier="0.6">
+
+                <FrameLayout
+                    android:layout_width="90dp"
+                    android:layout_height="90dp"
+                    android:layout_marginTop="8dp">
+
+                    <View
+                        android:layout_width="90dp"
+                        android:layout_height="90dp"
+                        android:layout_marginTop="4dp"
+                        android:alpha="0.2"
+                        android:background="@drawable/shadow_circle" />
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="90dp"
+                        android:layout_height="90dp"
+                        app:cardCornerRadius="45dp"
+                        app:cardElevation="4dp"
+                        app:strokeWidth="2dp"
+                        app:strokeColor="#FFFFFF">
+
+                        <FrameLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="#EEF2FF">
+
+                            <ImageView
+                                android:id="@+id/ivGroupImage"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:scaleType="centerCrop"
+                                android:contentDescription="Group image" />
+                        </FrameLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.floatingactionbutton.FloatingActionButton
+                        android:id="@+id/btnChangeGroupImage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom|end"
+                        android:layout_marginEnd="2dp"
+                        android:layout_marginBottom="2dp"
+                        android:visibility="gone"
+                        app:fabSize="mini"
+                        app:backgroundTint="#FFFFFF"
+                        app:tint="#4F46E5"
+                        app:borderWidth="0dp"
+                        android:src="@drawable/ic_camera"
+                        android:contentDescription="Change group image" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/tvGroupName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginStart="24dp"
+                    android:layout_marginEnd="24dp"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    tools:text="Group name" />
+            </LinearLayout>
+
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
+
+    <!-- Main Scrollable Content -->
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:clipToPadding="false"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingTop="0dp"
+            android:paddingBottom="24dp">
 
-            <!-- Group Header Card -->
+            <!-- About Section -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_margin="16dp"
+                android:layout_margin="12dp"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
+                app:cardElevation="1dp"
                 app:cardBackgroundColor="@android:color/white">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="24dp"
-                    android:gravity="center">
+                    android:padding="16dp">
 
-                    <!-- Group Image with Camera Icon -->
-                    <FrameLayout
-                        android:layout_width="120dp"
-                        android:layout_height="120dp">
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            app:cardCornerRadius="60dp"
-                            app:cardElevation="8dp"
-                            app:strokeWidth="3dp"
-                            app:strokeColor="#E0E7FF">
-
-                            <FrameLayout
-                                android:id="@+id/groupImageContainer"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:background="@drawable/gradient_chat_header">
-
-                                <ImageView
-                                    android:id="@+id/ivGroupImage"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="match_parent"
-                                    android:padding="30dp"
-                                    android:src="@drawable/ic_group_chat"
-                                    app:tint="@android:color/white"
-                                    android:scaleType="centerCrop"/>
-                            </FrameLayout>
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <!-- Camera Icon for Admins -->
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/btnChangeGroupImage"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
-                            android:layout_gravity="bottom|end"
-                            android:visibility="gone"
-                            app:cardCornerRadius="18dp"
-                            app:cardElevation="4dp"
-                            app:cardBackgroundColor="#4F46E5">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:layout_gravity="center"
-                                android:src="@drawable/ic_camera"
-                                app:tint="@android:color/white"/>
-                        </com.google.android.material.card.MaterialCardView>
-                    </FrameLayout>
-
-                    <!-- Group Name -->
-                    <TextView
-                        android:id="@+id/tvGroupName"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:textSize="22sp"
-                        android:textStyle="bold"
-                        android:textColor="#1E293B"
-                        android:fontFamily="sans-serif-medium"
-                        tools:text="Team Discussion"/>
-
-                    <!-- Group Description -->
-                    <TextView
-                        android:id="@+id/tvGroupDescription"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:textSize="14sp"
-                        android:textColor="#64748B"
-                        android:gravity="center"
-                        android:visibility="gone"
-                        tools:text="Welcome to our team discussion group!"
-                        tools:visibility="visible"/>
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
 
-                    <!-- Created Info -->
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:orientation="vertical"
-                        android:gravity="center">
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_info"
+                            app:tint="#4F46E5"
+                            android:contentDescription="About icon"/>
 
                         <TextView
-                            android:id="@+id/tvCreatedBy"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:textSize="13sp"
-                            android:textColor="#64748B"
-                            tools:text="Created by Aman"/>
+                            android:layout_weight="1"
+                            android:layout_marginStart="10dp"
+                            android:text="About"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="#1E293B"
+                            android:fontFamily="sans-serif-medium"/>
 
-                        <TextView
-                            android:id="@+id/tvCreatedDate"
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnEditGroupInfo"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_height="32dp"
+                            android:text="Edit"
                             android:textSize="12sp"
+                            android:visibility="gone"
+                            android:minWidth="64dp"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            app:icon="@drawable/ic_edit"
+                            app:iconSize="14dp"
+                            app:iconPadding="4dp"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            app:cornerRadius="16dp"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="vertical"
+                        android:background="@drawable/bg_rounded_light"
+                        android:padding="12dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Description"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:textColor="#64748B"
+                            android:fontFamily="sans-serif-medium"/>
+
+                        <TextView
+                            android:id="@+id/tvGroupDescription"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textSize="14sp"
+                            android:textColor="#1E293B"
+                            android:lineSpacingExtra="2dp"
+                            tools:text="Welcome to our group."/>
+
+                        <TextView
+                            android:id="@+id/tvNoDescription"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="No description added"
+                            android:textSize="14sp"
                             android:textColor="#94A3B8"
-                            tools:text="15 Oct 2025, 02:30 PM"/>
+                            android:fontStyle="italic"
+                            android:visibility="gone"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
+                            android:src="@drawable/ic_calendar"
+                            app:tint="#64748B"
+                            android:contentDescription="Calendar icon"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="6dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvCreatedBy"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textSize="12sp"
+                                android:textColor="#64748B"
+                                tools:text="Created by Bh"/>
+
+                            <TextView
+                                android:id="@+id/tvCreatedDate"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:textSize="11sp"
+                                android:textColor="#94A3B8"
+                                tools:text="15 Oct 2025"/>
+                        </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Group Settings Section (Only for Admins) -->
+            <!-- Group Settings (Admin Only) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardGroupSettings"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                android:layout_marginBottom="16dp"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:layout_marginBottom="12dp"
                 android:visibility="gone"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
+                app:cardElevation="1dp"
                 app:cardBackgroundColor="@android:color/white">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                    <!-- Settings Header -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:padding="16dp">
+                        android:gravity="center_vertical">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:src="@drawable/ic_settings"
-                            app:tint="#4F46E5"/>
+                            app:tint="#4F46E5"
+                            android:contentDescription="Settings icon"/>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="10dp"
                             android:text="Group Settings"
                             android:textSize="16sp"
                             android:textStyle="bold"
@@ -197,108 +321,91 @@
                             android:fontFamily="sans-serif-medium"/>
                     </LinearLayout>
 
-                    <!-- Divider -->
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="16dp"
-                        android:background="#E2E8F0"/>
-
-                    <!-- Edit Group Info -->
-                    <LinearLayout
-                        android:id="@+id/btnEditGroupInfo"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:padding="16dp"
-                        android:gravity="center_vertical"
-                        android:background="?attr/selectableItemBackground">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_edit"
-                            app:tint="#10B981"/>
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="16dp"
-                            android:text="Edit Group Info"
-                            android:textSize="15sp"
-                            android:textColor="#1E293B"/>
-
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:src="@drawable/ic_chevron_right"
-                            app:tint="#94A3B8"/>
-                    </LinearLayout>
-
-                    <!-- Divider -->
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginStart="52dp"
-                        android:layout_marginEnd="16dp"
-                        android:background="#E2E8F0"/>
-
-                    <!-- Only Admins Send Messages -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
                         android:orientation="horizontal"
-                        android:padding="16dp"
+                        android:background="@drawable/bg_rounded_light"
+                        android:padding="12dp"
                         android:gravity="center_vertical">
 
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_lock"
-                            app:tint="#F59E0B"/>
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            app:cardCornerRadius="20dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="#FEF3C7">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_lock"
+                                app:tint="#F59E0B"
+                                android:contentDescription="Lock icon"/>
+                        </com.google.android.material.card.MaterialCardView>
 
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:layout_marginStart="16dp"
+                            android:layout_marginStart="12dp"
                             android:orientation="vertical">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Only Admins Send Messages"
-                                android:textSize="15sp"
-                                android:textColor="#1E293B"/>
+                                android:text="Admin-Only Messages"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:textColor="#1E293B"
+                                android:fontFamily="sans-serif-medium"/>
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Restrict messaging to admins only"
-                                android:textSize="12sp"
-                                android:textColor="#94A3B8"/>
+                                android:layout_marginTop="1dp"
+                                android:text="Only admins can send messages"
+                                android:textSize="11sp"
+                                android:textColor="#64748B"/>
                         </LinearLayout>
 
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/switchAdminOnly"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"/>
+                            android:layout_height="wrap_content"
+                            app:thumbTint="@color/switch_thumb"
+                            app:trackTint="@color/switch_track"/>
                     </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDeleteGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="12dp"
+                        android:text="Delete Group"
+                        android:textSize="14sp"
+                        app:icon="@drawable/ic_delete"
+                        app:iconGravity="start"
+                        app:iconSize="18dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        app:strokeColor="#EF4444"
+                        android:textColor="#EF4444"
+                        app:iconTint="#EF4444"
+                        app:cornerRadius="12dp"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Members Section -->
+            <!-- Participants -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                android:layout_marginBottom="16dp"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:layout_marginBottom="12dp"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
+                app:cardElevation="1dp"
                 app:cardBackgroundColor="@android:color/white">
 
                 <LinearLayout
@@ -306,190 +413,188 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <!-- Members Header -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:padding="16dp">
+                        android:padding="16dp"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_group"
+                            app:tint="#4F46E5"
+                            android:contentDescription="Group icon"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="10dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Participants"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="#1E293B"
+                                android:fontFamily="sans-serif-medium"/>
+
+                            <TextView
+                                android:id="@+id/tvMemberCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:textSize="11sp"
+                                android:textColor="#64748B"
+                                tools:text="12 members"/>
+                        </LinearLayout>
+
+                        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                            android:id="@+id/btnAddParticipant"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone"
+                            app:fabSize="mini"
+                            app:backgroundTint="#4F46E5"
+                            app:tint="@android:color/white"
+                            app:elevation="2dp"
+                            app:borderWidth="0dp"
+                            android:src="@drawable/ic_add"
+                            android:contentDescription="Add participant"/>
+                    </LinearLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/searchMembersLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp"
+                        android:layout_marginBottom="8dp"
+                        android:visibility="gone"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:startIconDrawable="@drawable/ic_search"
+                        app:endIconMode="clear_text">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etSearchMembers"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Search participants"
+                            android:textSize="14sp"
+                            android:inputType="text"
+                            android:maxLines="1"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvMembers"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingBottom="8dp"
+                        tools:itemCount="5"
+                        tools:listitem="@layout/item_group_member_modern"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Media & Files -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btnMediaDocs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@android:color/white">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="20dp"
+                    android:gravity="center_vertical">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        app:cardCornerRadius="24dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#DBEAFE">
 
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:src="@drawable/ic_group"
-                            app:tint="#4F46E5"/>
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_image"
+                            app:tint="#3B82F6"
+                            android:contentDescription="Media icon"/>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="16dp"
+                        android:orientation="vertical">
 
                         <TextView
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="12dp"
-                            android:text="Participants"
+                            android:text="Media, Links &amp; Files"
                             android:textSize="16sp"
                             android:textStyle="bold"
                             android:textColor="#1E293B"
                             android:fontFamily="sans-serif-medium"/>
 
                         <TextView
-                            android:id="@+id/tvMemberCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textSize="13sp"
-                            android:textColor="#64748B"
-                            tools:text="5 participants"/>
+                            android:layout_marginTop="2dp"
+                            android:text="View shared content"
+                            android:textSize="12sp"
+                            android:textColor="#64748B"/>
                     </LinearLayout>
 
-                    <!-- Divider -->
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="16dp"
-                        android:background="#E2E8F0"/>
-
-                    <!-- Add Participant Button (Only for Admins) -->
-                    <LinearLayout
-                        android:id="@+id/btnAddParticipant"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:padding="16dp"
-                        android:gravity="center_vertical"
-                        android:visibility="gone"
-                        android:background="?attr/selectableItemBackground">
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            app:cardCornerRadius="20dp"
-                            app:cardElevation="0dp"
-                            app:cardBackgroundColor="#EEF2FF">
-
-                            <ImageView
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:layout_gravity="center"
-                                android:src="@drawable/ic_add"
-                                app:tint="#4F46E5"/>
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:text="Add participants"
-                            android:textSize="15sp"
-                            android:textColor="#4F46E5"
-                            android:fontFamily="sans-serif-medium"/>
-                    </LinearLayout>
-
-                    <!-- Divider -->
-                    <View
-                        android:id="@+id/dividerAddParticipant"
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="16dp"
-                        android:visibility="gone"
-                        android:background="#E2E8F0"/>
-
-                    <!-- Members List -->
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvMembers"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:nestedScrollingEnabled="false"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp"
-                        tools:itemCount="5"
-                        tools:listitem="@layout/item_group_member"/>
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="#94A3B8"
+                        android:contentDescription="Navigate"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Action Buttons -->
-            <LinearLayout
+            <!-- Exit Group -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnExitGroup"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:layout_height="56dp"
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
-                android:layout_marginBottom="24dp">
-
-                <!-- Media, Links, Docs -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/btnMediaDocs"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
-                    app:cardBackgroundColor="@android:color/white">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:padding="16dp"
-                        android:gravity="center_vertical">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_image"
-                            app:tint="#10B981"/>
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="16dp"
-                            android:text="Media, Links, and Docs"
-                            android:textSize="15sp"
-                            android:textColor="#1E293B"/>
-
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:src="@drawable/ic_chevron_right"
-                            app:tint="#94A3B8"/>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Exit Group (Red) -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/btnExitGroup"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
-                    app:cardBackgroundColor="#FEF2F2">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:padding="16dp"
-                        android:gravity="center_vertical">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_exit"
-                            app:tint="#EF4444"/>
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="16dp"
-                            android:text="Exit Group"
-                            android:textSize="15sp"
-                            android:textColor="#EF4444"
-                            android:fontFamily="sans-serif-medium"/>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-            </LinearLayout>
+                android:text="Exit Group"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                style="@style/Widget.Material3.Button.TonalButton"
+                app:backgroundTint="#FEE2E2"
+                android:textColor="#DC2626"
+                app:iconTint="#DC2626"
+                app:icon="@drawable/ic_exit"
+                app:iconGravity="start"
+                app:cornerRadius="16dp"/>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -6,10 +6,10 @@
     android:id="@+id/cardGroup"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="8dp"
-    android:layout_marginBottom="8dp"
     android:layout_marginStart="16dp"
     android:layout_marginEnd="16dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginBottom="8dp"
     app:cardCornerRadius="20dp"
     app:cardElevation="4dp"
     app:strokeWidth="1dp"
@@ -18,7 +18,7 @@
     app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
     android:clickable="true"
     android:focusable="true"
-    android:foreground="@color/white">
+    android:foreground="?attr/selectableItemBackground">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -26,18 +26,30 @@
         android:background="@color/white"
         android:padding="20dp">
 
-        <!-- Group Avatar/Icon -->
+        <!-- Circular Avatar Container -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/avatarCard"
             android:layout_width="56dp"
             android:layout_height="56dp"
             app:cardCornerRadius="28dp"
             app:cardElevation="2dp"
-            android:background="@drawable/gradient_avatar_hisab"
+            app:cardBackgroundColor="#E0E7FF"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintBottom_toBottomOf="parent">
 
+            <!-- Circular Group Image -->
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivGroupAvatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:contentDescription="@string/group_avatar"
+                android:visibility="gone"
+                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.Hisab.Full"/>
+
+
+            <!-- Fallback Initial -->
             <TextView
                 android:id="@+id/tvGroupInitial"
                 android:layout_width="match_parent"
@@ -64,7 +76,6 @@
             app:layout_constraintTop_toTopOf="@id/avatarCard"
             app:layout_constraintStart_toEndOf="@id/avatarCard"
             app:layout_constraintEnd_toStartOf="@id/ivChevron"
-            app:layout_constraintHorizontal_bias="0"
             tools:text="Weekend Trip"/>
 
         <!-- Subtitle (Budget + Date) -->
@@ -92,7 +103,7 @@
             android:layout_height="28dp"
             android:src="@drawable/ic_chevron_right_hisab"
             app:tint="?attr/colorOnSurfaceVariant"
-            android:contentDescription="View details"
+            android:contentDescription="@string/view_details"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"/>

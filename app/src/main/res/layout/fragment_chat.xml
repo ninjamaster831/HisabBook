@@ -51,13 +51,16 @@
                         app:cardElevation="8dp"
                         app:strokeWidth="0dp">
 
-                        <ImageView
+                        <com.google.android.material.imageview.ShapeableImageView
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:src="@drawable/logo"
                             android:contentDescription="@string/app_name"
-                            android:padding="8dp"
-                            android:scaleType="centerInside"/>
+                            android:scaleType="centerCrop"
+                            android:adjustViewBounds="false"
+                            app:shapeAppearanceOverlay="@style/ShapeableImage_Rounded"
+                            android:importantForAccessibility="no" />
+
                     </com.google.android.material.card.MaterialCardView>
 
                     <!-- Title & Subtitle -->
@@ -91,6 +94,7 @@
 
                     <!-- Notification/Profile Icon -->
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/notification"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
                         app:cardCornerRadius="20dp"
@@ -111,53 +115,60 @@
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/searchCard"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="12dp"
-                    app:strokeWidth="0dp"
-                    app:cardBackgroundColor="@android:color/white">
+                    android:layout_height="64dp"
+                android:layout_marginTop="24dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="12dp"
+                app:cardBackgroundColor="@android:color/white">
 
-                    <LinearLayout
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="8dp">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.FilledBox.Dense"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    app:boxBackgroundColor="@android:color/transparent"
+                    app:startIconDrawable="@drawable/ic_search"
+                    app:startIconTint="@color/hsb_primary"
+                    app:hintEnabled="false"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etSearch"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
+                        android:layout_height="match_parent"
+                    android:hint="Search groups..."
+                    android:textSize="15sp"
+                    android:inputType="text"
+                    android:gravity="center_vertical"
+                    android:background="@android:color/transparent"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp"/>
+                </com.google.android.material.textfield.TextInputLayout>
 
-                        <com.google.android.material.textfield.TextInputLayout
-                            style="@style/Widget.Material3.TextInputLayout.FilledBox.Dense"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            app:boxBackgroundColor="@android:color/transparent"
-                            app:startIconDrawable="@drawable/ic_search"
-                            app:startIconTint="@color/hsb_primary"
-                            app:hintEnabled="false">
+                <!-- Filter Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFilter"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    app:icon="@drawable/ic_filter"
+                    app:iconTint="@color/hsb_primary"
+                    app:backgroundTint="@color/hsb_primary_08"
+                    app:cornerRadius="12dp"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/etSearch"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:hint="Search groups..."
-                                android:textSize="15sp"
-                                android:inputType="text"
-                                android:background="@android:color/transparent"/>
-                        </com.google.android.material.textfield.TextInputLayout>
 
-                        <!-- Filter Button -->
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnFilter"
-                            style="@style/Widget.Material3.Button.IconButton"
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            app:icon="@drawable/ic_filter"
-                            app:iconTint="@color/hsb_primary"
-                            app:backgroundTint="@color/hsb_primary_08"
-                            app:cornerRadius="12dp"/>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Filter Chips (Initially Hidden) -->
+        <!-- Filter Chips (Initially Hidden) -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/filterChipCard"
                     android:layout_width="match_parent"

@@ -9,13 +9,27 @@ data class Group(
     val id: Long? = null,
     val name: String,
     val budget: Double? = null,
+
+    @SerialName("description")
+    val description: String? = null,
+
+    @SerialName("image_url")
+    val imageUrl: String? = null,
+
+    @SerialName("admin_only")
+    val adminOnly: Boolean = false,
+
     @SerialName("created_by")
     val createdBy: String,
+
     @SerialName("created_at")
     val createdAt: String? = null, // ISO timestamp from Supabase
+
     @SerialName("is_active")
     val isActive: Boolean = true,
-    @SerialName("join_code") val joinCode: String? = null
+
+    @SerialName("join_code")
+    val joinCode: String? = null
 )
 
 // Data class for settlement information

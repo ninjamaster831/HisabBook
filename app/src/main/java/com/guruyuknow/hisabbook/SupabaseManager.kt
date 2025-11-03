@@ -5,11 +5,13 @@ import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import com.guruyuknow.hisabbook.ProfileFragment.UserProfile
 import com.guruyuknow.hisabbook.Staff.Attendance
 import com.guruyuknow.hisabbook.Staff.AttendanceStatus
 import com.guruyuknow.hisabbook.Staff.Salary
 import com.guruyuknow.hisabbook.Staff.SalaryType
 import com.guruyuknow.hisabbook.Staff.Staff
+import com.guruyuknow.hisabbook.models.NotificationItem
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.Auth
 import io.github.jan.supabase.gotrue.auth
@@ -17,6 +19,7 @@ import io.github.jan.supabase.gotrue.providers.Google
 import io.github.jan.supabase.gotrue.providers.builtin.IDToken
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.serializer.KotlinXSerializer
 import io.github.jan.supabase.storage.Storage
@@ -72,17 +75,106 @@ object SupabaseManager {
         }
     }
 
-    
-    // ==================== STAFF MANAGEMENT ====================
-    suspend fun addCoins(userId: String, coinsToAdd: Int): Result<Unit> {
+    suspend fun updateUserProfile(userId: String, address: String, phone: String): Result<Unit> {
         return try {
-            val currentCoins = StatsDatabase.getUserCoins(userId).getOrElse { 0 }
-            StatsDatabase.updateUserCoins(userId, currentCoins + coinsToAdd)
+            withContext(Dispatchers.IO) {
+                // Prepare payload
+                val payload = mapOf(
+                    "address" to address,
+                    "phone" to phone,
+                    "updated_at" to "now()"
+                )
+
+                // Try to update existing profile row
+                val updateResponse = client.from("user_profiles")
+                    .update(payload) {
+                        filter { eq("id", userId) }
+                        select() // return updated row if supported
+                    }
+                    .decodeList<Map<String, @kotlin.Suppress("UNCHECKED_CAST") Any>>() // decode as generic map
+
+                // If updateResponse is empty or null, attempt an insert (row may not exist)
+                if (updateResponse == null || updateResponse.isEmpty()) {
+                    // Build insert payload - include id since we're creating a new row
+                    val insertPayload = mapOf(
+                        "id" to userId,
+                        "address" to address,
+                        "phone" to phone,
+                        "created_at" to "now()",
+                        "updated_at" to "now()"
+                    )
+
+                    client.from("user_profiles")
+                        .insert(insertPayload) {
+                            select()
+                        }
+                        .decodeSingleOrNull<Map<String, Any>>() // ignore result content
+                }
+
+                Result.success(Unit)
+            }
         } catch (e: Exception) {
-            Log.e("SupabaseManager", "Error adding coins", e)
+            // Log and return failure so caller can handle it
+            Log.e("SupabaseManager", "updateUserProfile failed: ${e.message}", e)
             Result.failure(e)
         }
     }
+    @Serializable
+    data class NotificationSettingsPayload(
+        val payment_reminders: Boolean,
+        val bill_alerts: Boolean,
+        val daily_reports: Boolean
+    )
+    suspend fun updateUserNotificationSettings(
+        userId: String,
+        paymentReminders: Boolean,
+        billAlerts: Boolean,
+        dailyReports: Boolean
+    ): Result<Unit> {
+        return try {
+            withContext(Dispatchers.IO) {
+                val payload = NotificationSettingsPayload(
+                    payment_reminders = paymentReminders,
+                    bill_alerts = billAlerts,
+                    daily_reports = dailyReports
+                )
+
+                // Attempt update
+                client.from("user_profiles")
+                    .update(payload) {
+                        filter { eq("id", userId) }
+                    }
+
+                // Note: Postgrest client may not throw if zero rows affected.
+                // If you want to ensure a row exists, you can check and insert when necessary.
+                Result.success(Unit)
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseManager", "updateUserNotificationSettings failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getUserProfile(userId: String): UserProfile? {
+        return try {
+            withContext(Dispatchers.IO) {
+                // Query the user_profiles table where id == userId
+                client.from("user_profiles")
+                    .select {
+                        filter {
+                            eq("id", userId) // user_profiles primary key 'id' should match auth users id
+                        }
+                    }
+                    // decodeSingleOrNull will return null when no row exists, or the typed object when found.
+                    .decodeSingleOrNull<com.guruyuknow.hisabbook.ProfileFragment.UserProfile>()
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseManager", "getUserProfile failed: ${e.message}", e)
+            null
+        }
+    }
+
+
     suspend fun addStaff(staff: Staff): Result<Staff> {
         return try {
             withContext(Dispatchers.IO) {
@@ -985,11 +1077,117 @@ object SupabaseManager {
     }
 
 
+    suspend fun getNotificationsForUser(userId: String): Result<List<NotificationItem>> {
+        return try {
+            val response = client.from("notifications")
+                .select(columns = Columns.ALL) {
+                    filter {
+                        eq("user_id", userId)
+                    }
+                    order("created_at", Order.DESCENDING) // ✅ Correct for v3.1.x
+                    limit(100)
+                }
+                .decodeList<NotificationResponse>()
+
+            val items = response.map { it.toNotificationItem() }
+            Result.success(items)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+
+    /**
+     * Mark a specific notification as read
+     */
+    suspend fun markNotificationRead(notificationId: String): Result<Unit> {
+        return try {
+            client.from("notifications")
+                .update(
+                    mapOf("is_read" to true)
+                ) {
+                    filter {
+                        eq("id", notificationId)
+                    }
+                }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Mark all notifications as read for a user
+     */
+    suspend fun markAllNotificationsRead(userId: String): Result<Unit> {
+        return try {
+            client.from("notifications")
+                .update(
+                    mapOf("is_read" to true)
+                ) {
+                    filter {
+                        eq("user_id", userId)
+                        eq("is_read", false)
+                    }
+                }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Get count of unread notifications for a user
+     */
+    suspend fun getUnreadNotificationCount(userId: String): Result<Int> {
+        return try {
+            val response = client.from("notifications")
+                .select(columns = Columns.list("id")) {
+                    filter {
+                        eq("user_id", userId)
+                        eq("is_read", false)
+                    }
+                }
+                .decodeList<Map<String, String>>()
+
+            Result.success(response.size)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Delete a specific notification
+     */
+    suspend fun deleteNotification(notificationId: String): Result<Unit> {
+        return try {
+            client.from("notifications")
+                .delete {
+                    filter {
+                        eq("id", notificationId)
+                    }
+                }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+
+    // In your SupabaseManager
     suspend fun signOut() {
         try {
             client.auth.signOut()
+            // Clear any cached data
+            // Reset any state
         } catch (e: Exception) {
-            Log.e("SupabaseManager", "Error signing out: ${e.message}", e)
+            e.printStackTrace()
+            throw e
         }
     }
 }

@@ -24,6 +24,8 @@
     <string name="absent">Absent</string>
     <string name="half_day">Half Day</string>
     <string name="late">Late</string>
+    <string name="group_avatar">Group avatar</string>
+    <string name="view_details">View details</string>
 
     <!-- Staff Management -->
     <string name="staff_added_successfully">Staff added successfully</string>
