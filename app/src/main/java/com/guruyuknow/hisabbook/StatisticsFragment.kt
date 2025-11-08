@@ -57,7 +57,6 @@ class StatisticsFragment : Fragment() {
     private lateinit var recyclerViewAnomalies: RecyclerView
     private lateinit var anomaliesAdapter: AnomaliesAdapter
     private lateinit var cashFlowPredictionChart: LineChart
-    private lateinit var fabVoiceAssistant: FloatingActionButton
     private lateinit var chipGroupFilters: ChipGroup
     private lateinit var tvPredictedBalance: TextView
     private lateinit var recyclerViewChallenges: RecyclerView
@@ -91,7 +90,6 @@ class StatisticsFragment : Fragment() {
         initViews(view)
         initAIViews(view)
         setupRecyclerViews()
-        setupVoiceAssistant()
 
         // ✅ Tie async/UI work to VIEW lifecycle to avoid running after view is destroyed
         viewLifecycleOwner.lifecycleScope.launch {
@@ -126,7 +124,6 @@ class StatisticsFragment : Fragment() {
         recyclerViewInsights = view.findViewById(R.id.recyclerViewInsights)
         recyclerViewAnomalies = view.findViewById(R.id.recyclerViewAnomalies)
         cashFlowPredictionChart = view.findViewById(R.id.cashFlowPredictionChart)
-        fabVoiceAssistant = view.findViewById(R.id.fabVoiceAssistant)
         chipGroupFilters = view.findViewById(R.id.chipGroupFilters)
         tvPredictedBalance = view.findViewById(R.id.tvPredictedBalance)
         recyclerViewChallenges = view.findViewById(R.id.recyclerViewChallenges)
@@ -156,11 +153,6 @@ class StatisticsFragment : Fragment() {
         recyclerViewChallenges.adapter = challengesAdapter
     }
 
-    private fun setupVoiceAssistant() {
-        fabVoiceAssistant.setOnClickListener {
-            startVoiceRecognition()
-        }
-    }
 
     private fun loadDataFromDatabase() {
         // ✅ Use viewLifecycleOwner scope (cancels when view is destroyed)
@@ -593,17 +585,6 @@ class StatisticsFragment : Fragment() {
     }
 
     // AI Helper Methods
-    private fun startVoiceRecognition() {
-        // Implement voice recognition for financial queries
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN") // Hindi support
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Ask about your finances...")
-        }
-
-        // Handle the voice input and generate AI response
-        // This would integrate with your voice processing logic
-    }
 
     private fun filterInsights(filter: String) {
         val filteredInsights = when (filter) {

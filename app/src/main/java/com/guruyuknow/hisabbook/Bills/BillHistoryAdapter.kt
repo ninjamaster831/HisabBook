@@ -1,5 +1,6 @@
 package com.guruyuknow.hisabbook.Bills
 
+import android.content.Intent
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -44,7 +45,7 @@ class BillHistoryAdapter(private val lifecycleOwner: LifecycleOwner) :
         }
 
         // Debug log
-        Log.d(TAG, "Bill ${bill.id}: amountString='${entry?.amountString}', parsed amount=$amountValue")
+        Log.d(TAG, "Bill ${bill.id}: amountString='${entry?.amount}', parsed amount=$amountValue")
 
         val amountStr = try {
             NumberFormat.getCurrencyInstance(Locale("en", "IN")).format(amountValue)
@@ -89,13 +90,31 @@ class BillHistoryAdapter(private val lifecycleOwner: LifecycleOwner) :
             holder.b.imgThumb.alpha = 0.5f
         }
 
-        // Click handler
+        // Click handler -> open BillDetailActivity with extras
         holder.itemView.setOnClickListener {
-            android.widget.Toast.makeText(
-                holder.itemView.context,
-                "Bill ID: ${bill.id}\nAmount: $amountStr\nDate: ${entry?.date ?: "N/A"}",
-                android.widget.Toast.LENGTH_SHORT
-            ).show()
+            val ctx = holder.itemView.context
+            val intent = Intent(ctx, BillDetailActivity::class.java).apply {
+                putExtra(BillDetailActivity.EXTRA_BILL_ID, bill.id)
+                putExtra(BillDetailActivity.EXTRA_IMAGE_URL, bill.imageUrl)
+                putExtra(BillDetailActivity.EXTRA_AMOUNT, amountValue)
+                putExtra(BillDetailActivity.EXTRA_DATE, entry?.date)
+                putExtra(BillDetailActivity.EXTRA_TYPE, entry?.type)
+                putExtra(BillDetailActivity.EXTRA_PAYMENT_METHOD, entry?.paymentMethod)
+                putExtra(BillDetailActivity.EXTRA_CATEGORY, entry?.category)
+                putExtra(BillDetailActivity.EXTRA_DESCRIPTION, entry?.description)
+                putExtra(BillDetailActivity.EXTRA_EXTRACTED_TEXT, bill.extractedText)
+                // extractedAmount exists on bill (used earlier). If null, pass 0.0
+                putExtra(BillDetailActivity.EXTRA_EXTRACTED_AMOUNT, bill.extractedAmount ?: 0.0)
+                // confidence may not exist; pass 0.0 by default if not available
+                try {
+                    // safe attempt if your model has confidenceScore
+                    val conf = (bill::class.java.getDeclaredField("confidenceScore").apply { isAccessible = true }.get(bill) as? Double) ?: 0.0
+                    putExtra(BillDetailActivity.EXTRA_CONFIDENCE_SCORE, conf)
+                } catch (_: Exception) {
+                    putExtra(BillDetailActivity.EXTRA_CONFIDENCE_SCORE, 0.0)
+                }
+            }
+            ctx.startActivity(intent)
         }
     }
 }

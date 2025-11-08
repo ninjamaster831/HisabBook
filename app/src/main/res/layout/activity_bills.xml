@@ -6,84 +6,153 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#7DD3CE"
     android:fitsSystemWindows="true"
     tools:context=".Bills.BillsActivity">
 
+    <!-- AppBar with Material Design 3 -->
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="#7DD3CE"
         android:fitsSystemWindows="true"
-        android:background="?attr/colorSurface"
-        android:elevation="4dp"
-        app:elevation="4dp"
-        app:layout_scrollFlags="scroll|enterAlways|snap">
+        android:elevation="0dp"
+        app:elevation="0dp">
 
+        <!-- Simple, Clean Toolbar -->
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:background="@color/white"
+            android:background="#7DD3CE"
+            app:navigationIcon="@drawable/ic_arrow_back_24"
+            app:navigationIconTint="@color/white"
             app:title="Bills"
-            app:titleTextAppearance="@style/TextAppearance.Material3.HeadlineSmall"
-            app:titleCentered="true"
-            app:navigationIconTint="?attr/colorOnSurface"
-            app:menu="@menu/bills_menu"
-            app:layout_scrollFlags="scroll|enterAlways"/>
+            app:titleTextColor="@color/white"
+            app:titleTextAppearance="@style/ToolbarTitle"
+            app:menu="@menu/bills_menu"/>
 
+        <!-- Tab Layout Directly in AppBar -->
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayout"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:paddingStart="16dp"
-            android:background="@color/white"
-            android:paddingEnd="16dp"
-            app:tabIndicatorFullWidth="false"
-            app:tabIndicatorAnimationDuration="300"
+            android:background="#7DD3CE"
+            app:tabIndicatorFullWidth="true"
             app:tabIndicatorHeight="3dp"
-            app:tabIndicatorColor="#7DD3CE"
+            app:tabIndicatorColor="@color/white"
             app:tabMode="fixed"
             app:tabGravity="fill"
-            app:tabSelectedTextColor="#7DD3CE"
-            app:tabTextColor="#7DD3CE"
-            app:tabRippleColor="#7DD3CE"
-            app:tabTextAppearance="@style/TextAppearance.Material3.LabelLarge"
-            style="@style/Widget.Material3.TabLayout"/>
+            app:tabSelectedTextColor="@color/white"
+            app:tabTextColor="#B3FFFFFF"
+            app:tabRippleColor="#33FFFFFF"
+            app:tabTextAppearance="@style/TabText"/>
+
     </com.google.android.material.appbar.AppBarLayout>
 
+    <!-- Beautiful Hint Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/hintCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="4dp"
+        app:cardBackgroundColor="#FFFFFF"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center_vertical"
+            android:background="@drawable/hint_gradient_bg">
+
+            <!-- Icon -->
+            <LinearLayout
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:gravity="center"
+                android:background="@drawable/hint_icon_bg">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💡"
+                    android:textSize="24sp" />
+
+            </LinearLayout>
+
+            <!-- Text Content -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Quick Tip"
+                    android:textColor="#7DD3CE"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.1" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Click on any bill to see full details"
+                    android:textColor="#424242"
+                    android:textSize="14sp"
+                    android:lineSpacingExtra="2dp" />
+
+            </LinearLayout>
+
+            <!-- Close Button -->
+            <ImageView
+                android:id="@+id/btnCloseHint"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_close_24"
+                android:contentDescription="Close hint"
+                android:padding="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- ViewPager Content -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingTop="8dp"
-        android:paddingStart="4dp"
-        android:background="@color/white"
-        android:paddingEnd="4dp"
-        android:clipToPadding="false"
+        android:layout_marginTop="80dp"
+        android:background="#F5F7FA"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
 
-    <!-- Enhanced FAB with proper behavior -->
+    <!-- Floating Action Button -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fabAdd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
-        android:text="Add Bill"
+        android:text="Add Expense"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:textStyle="bold"
         app:icon="@drawable/ic_add_24"
-        app:iconTint="?attr/colorOnPrimary"
+        app:iconTint="@color/white"
         app:backgroundTint="#7DD3CE"
-        app:tint="?attr/colorOnPrimary"
-        app:borderWidth="0dp"
         app:elevation="6dp"
-        app:hoveredFocusedTranslationZ="8dp"
-        app:pressedTranslationZ="12dp"
-        app:layout_anchor="@id/viewPager"
-        app:layout_anchorGravity="bottom|end"
-        app:layout_behavior="com.google.android.material.behavior.HideBottomViewOnScrollBehavior"
-        app:shrinkMotionSpec="@animator/fab_shrink_motion"
-        app:extendMotionSpec="@animator/fab_extend_motion"/>
+        app:pressedTranslationZ="12dp"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

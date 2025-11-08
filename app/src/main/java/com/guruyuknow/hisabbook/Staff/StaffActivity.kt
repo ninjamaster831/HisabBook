@@ -34,7 +34,7 @@ class StaffActivity : AppCompatActivity() {
     private lateinit var staffAdapter: StaffAdapter
     private val staffList = mutableListOf<Staff>()
     private var businessOwnerId: String? = null
-
+    private var currentFilter: String = "all"
     // State management
     private sealed class UiState {
         object Loading : UiState()
@@ -125,18 +125,23 @@ class StaffActivity : AppCompatActivity() {
         binding.btnAddStaff.setOnClickListener(addClickListener)
 
         // Filter chips
+        // Filter chips
         binding.chipAll.setOnClickListener {
-            filterStaff("all")
+            currentFilter = "all"
+            filterStaff(currentFilter)
             updateChipSelection(binding.chipAll.id)
         }
         binding.chipSalaryAdded.setOnClickListener {
-            filterStaff("salary_added")
+            currentFilter = "salary_added"
+            filterStaff(currentFilter)
             updateChipSelection(binding.chipSalaryAdded.id)
         }
         binding.chipPermissionGiven.setOnClickListener {
-            filterStaff("permission_given")
+            currentFilter = "permission_given"
+            filterStaff(currentFilter)
             updateChipSelection(binding.chipPermissionGiven.id)
         }
+
     }
 
     private fun updateChipSelection(selectedId: Int) {
@@ -235,11 +240,26 @@ class StaffActivity : AppCompatActivity() {
                         staffAdapter.notifyDataSetChanged()
                         updateUiState(UiState.Success(staff))
 
+                        // Ensure the adapter displays items based on currentFilter (default "all")
+                        try {
+                            filterStaff(currentFilter)
+                            // keep UI chips in sync
+                            when (currentFilter) {
+                                "all" -> updateChipSelection(binding.chipAll.id)
+                                "salary_added" -> updateChipSelection(binding.chipSalaryAdded.id)
+                                "permission_given" -> updateChipSelection(binding.chipPermissionGiven.id)
+                            }
+                        } catch (e: Exception) {
+                            Log.w("StaffActivity", "Failed to apply filter on load: ${e.message}")
+                        }
+
                         // Load additional data in parallel
                         updateTodayAttendanceSummary(businessOwnerId)
                         calculateTotalDue(staff)
                     }
-                } else {
+                }
+
+                else {
                     val error = result.exceptionOrNull()
                     val errorMessage = when {
                         error?.message?.contains("network", ignoreCase = true) == true ->

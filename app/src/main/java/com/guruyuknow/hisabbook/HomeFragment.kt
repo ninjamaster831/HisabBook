@@ -13,8 +13,8 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
+import com.guruyuknow.hisabbook.Bills.SupabaseCashbook
 import com.guruyuknow.hisabbook.databinding.FragmentHomeBinding
 import com.guruyuknow.hisabbook.group.Group
 import com.guruyuknow.hisabbook.group.GroupExpenseViewModel
@@ -29,8 +29,7 @@ import kotlinx.serialization.Serializable
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
-
-private const val TAG_HOME = "HomeFragment"
+ internal const val TAG_HOME = "HomeFragment"
 
 class HomeFragment : Fragment() {
 
@@ -42,6 +41,7 @@ class HomeFragment : Fragment() {
     private val numberFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
     private val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     private lateinit var eventsAdapter: EventsAdapter
+    private lateinit var billsAdapter: BillsAdapter // NEW: Bills adapter
 
     private val groupsVm: GroupExpenseViewModel by viewModels()
     private lateinit var groupsAdapter: GroupsCarouselAdapter
@@ -77,6 +77,7 @@ class HomeFragment : Fragment() {
         setupUI()
         loadDashboardData()
         loadUserEvents()
+        loadBills() // NEW: Load bills
         setupGroupsSectionIfPresent()
         (activity as? MainActivity)?.hideLoading()
 
@@ -89,11 +90,12 @@ class HomeFragment : Fragment() {
                 .show(parentFragmentManager, "event_detail")
         }
         parentFragmentManager.setFragmentResultListener("transaction_added", viewLifecycleOwner) { _, _ ->
-            Log.d(TAG_HOME, "transaction_added -> refreshing dashboard")
+            Log.d(TAG_HOME, "transaction_added -> refreshing dashboard and bills")
             viewLifecycleOwner.lifecycleScope.launch {
                 (activity as? MainActivity)?.showLoading()
                 delay(250)
                 loadDashboardData()
+                loadBills() // NEW: Refresh bills
                 (activity as? MainActivity)?.hideLoading()
             }
         }
@@ -173,21 +175,25 @@ class HomeFragment : Fragment() {
         groupsVm.loadAllGroups()
     }
 
+    // NEW: more robust authentication checks — replace your existing loadUserEvents()
     private fun loadUserEvents() {
         Log.d(TAG_HOME, "loadUserEvents() start")
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val user = SupabaseManager.getCurrentUser()
                 Log.d(TAG_HOME, "Current user for events: ${user?.id}")
-                if (user?.id == null) {
-                    showErrorMessage("Please login to see your events")
+
+                if (user == null || user.id.isNullOrEmpty()) {
+                    Log.w(TAG_HOME, "No authenticated user found for events")
+
                     if (::eventsAdapter.isInitialized) {
                         eventsAdapter.submitList(emptyList())
                         toggleEventsEmptyState(true)
                     }
                     return@launch
                 }
-                val events = SupabaseManager.getUserEvents(user.id!!)
+
+                val events = SupabaseManager.getUserEvents(user.id)
                 Log.d(TAG_HOME, "Events fetched: count=${events.size}")
                 if (::eventsAdapter.isInitialized) {
                     eventsAdapter.submitList(events)
@@ -201,10 +207,59 @@ class HomeFragment : Fragment() {
         }
     }
 
+    // NEW: more robust authentication checks — replace your existing loadBills()
+    private fun loadBills() {
+        Log.d(TAG_HOME, "loadBills() start")
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val user = SupabaseManager.getCurrentUser()
+                Log.d(TAG_HOME, "Current user for bills: ${user?.id}")
+
+                // Treat user as authenticated only when user != null and id is not empty
+                if (user == null || user.id.isNullOrEmpty()) {
+                    Log.w(TAG_HOME, "No authenticated user found for bills")
+                    if (::billsAdapter.isInitialized) {
+                        billsAdapter.submitList(emptyList())
+                        toggleBillsEmptyState(true)
+                    }
+                    return@launch
+                }
+
+                val bills = SupabaseCashbook.getAllBillsWithEntry()
+                Log.d(TAG_HOME, "Bills fetched: count=${bills.size}")
+                bills.firstOrNull()?.let { bill ->
+                    Log.d(TAG_HOME, "First Bill Image URL: ${bill.imageUrl}")
+                }
+                if (::billsAdapter.isInitialized) {
+                    // Limit to 5 bills for the home screen
+                    billsAdapter.submitList(bills.take(5))
+                    toggleBillsEmptyState(bills.isEmpty())
+                }
+            } catch (e: Exception) {
+                Log.e(TAG_HOME, "Failed to load bills", e)
+                showErrorMessage("Failed to load bills: ${e.message}")
+                toggleBillsEmptyState(true)
+            }
+        }
+    }
+
+
     private fun toggleEventsEmptyState(isEmpty: Boolean) {
         runCatching { binding.eventsEmptyState }.getOrNull()?.visibility =
             if (isEmpty) View.VISIBLE else View.GONE
         runCatching { binding.eventsRecycler }.getOrNull()?.visibility =
+            if (isEmpty) View.GONE else View.VISIBLE
+    }
+
+
+
+
+
+    // NEW: Toggle bills empty state
+    private fun toggleBillsEmptyState(isEmpty: Boolean) {
+        runCatching { binding.billsEmptyState }.getOrNull()?.visibility =
+            if (isEmpty) View.VISIBLE else View.GONE
+        runCatching { binding.billsRecycler }.getOrNull()?.visibility =
             if (isEmpty) View.GONE else View.VISIBLE
     }
 
@@ -229,6 +284,18 @@ class HomeFragment : Fragment() {
         binding.eventsRecycler.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = eventsAdapter
+        }
+
+        // NEW: Initialize bills adapter
+        billsAdapter = BillsAdapter { bill ->
+            Log.d(TAG_HOME, "Bill clicked: id=${bill.id}")
+            // TODO: Navigate to bill details (create a BillDetailFragment or BottomSheet if needed)
+            Toast.makeText(requireContext(), "Bill clicked: ${bill.id}", Toast.LENGTH_SHORT).show()
+        }
+        binding.billsRecycler.apply {
+            layoutManager = LinearLayoutManager(context)
+            adapter = billsAdapter
+            setHasFixedSize(true)
         }
 
         setupClickListeners()
@@ -262,6 +329,7 @@ class HomeFragment : Fragment() {
             loansCard.setOnClickListener    { Log.d(TAG_HOME, "loansCard clicked"); navigateToLoans() }
             viewAllTransactionsBtn.setOnClickListener { Log.d(TAG_HOME, "ViewAllTransactions clicked"); navigateToAllTransactions() }
             voiceInputBtn.setOnClickListener { openVoiceInputBottomSheet() }
+
         }
     }
 
@@ -366,6 +434,7 @@ class HomeFragment : Fragment() {
                         viewLifecycleOwner.lifecycleScope.launch {
                             delay(300)
                             loadDashboardData()
+                            loadBills() // NEW: Refresh bills
                             (activity as? MainActivity)?.hideLoading()
                         }
                     } catch (e: Exception) {
@@ -378,6 +447,7 @@ class HomeFragment : Fragment() {
 
         dialog.show()
     }
+
     private fun openVoiceInputBottomSheet() {
         try {
             VoiceInputBottomSheet().show(parentFragmentManager, "voice_input")
@@ -538,16 +608,15 @@ class HomeFragment : Fragment() {
             if (isAdded) Toast.makeText(requireActivity(), message, Toast.LENGTH_LONG).show()
         }
     }
+
     override fun onResume() {
         super.onResume()
-        Log.d(TAG_HOME, "onResume(): refreshing dashboard")
-
-        // Show loading while refreshing
+        Log.d(TAG_HOME, "onResume(): refreshing dashboard and bills")
         (activity as? MainActivity)?.showLoading()
-
         viewLifecycleOwner.lifecycleScope.launch {
             delay(300)
             loadDashboardData()
+            loadBills() // NEW: Refresh bills
             (activity as? MainActivity)?.hideLoading()
         }
     }

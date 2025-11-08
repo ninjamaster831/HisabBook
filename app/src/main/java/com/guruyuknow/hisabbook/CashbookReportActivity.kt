@@ -27,7 +27,6 @@ class CashbookReportActivity : AppCompatActivity() {
 
     // UI Components
     private lateinit var backButton: ImageView
-    private lateinit var filterButton: ImageView
     private lateinit var totalIncomeAmount: TextView
     private lateinit var totalExpenseAmount: TextView
     private lateinit var filterChipGroup: ChipGroup
@@ -71,7 +70,6 @@ class CashbookReportActivity : AppCompatActivity() {
 
     private fun initViews() {
         backButton = findViewById(R.id.backButton)
-        filterButton = findViewById(R.id.filterButton)
         totalIncomeAmount = findViewById(R.id.totalIncomeAmount)
         totalExpenseAmount = findViewById(R.id.totalExpenseAmount)
         filterChipGroup = findViewById(R.id.filterChipGroup)
@@ -105,10 +103,6 @@ class CashbookReportActivity : AppCompatActivity() {
     private fun setupClickListeners() {
         backButton.setOnClickListener { finish() }
 
-        filterButton.setOnClickListener {
-            // Could implement advanced filtering options (date range picker, categories, etc)
-            Toast.makeText(this, "Advanced filters coming soon", Toast.LENGTH_SHORT).show()
-        }
     }
 
     private fun setupChipListeners() {

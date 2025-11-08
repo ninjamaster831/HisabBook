@@ -205,17 +205,13 @@ object SupabaseCashbook {
     data class CashbookEntryPartial(
         val id: String? = null,
         @SerialName("amount")
-        val amountString: String? = null,  // Keep as String from DB
+        val amount: Double? = null,  // Changed: Now accepts Double directly from DB
         val type: String? = null,
         @SerialName("payment_method") val paymentMethod: String? = null,
         val date: String? = null,
         val category: String? = null,
         val description: String? = null
-    ) {
-        // Computed property to safely parse amount
-        val amount: Double?
-            get() = amountString?.toDoubleOrNull()
-    }
+    )
 
     @Serializable
     data class BillWithEntry(
@@ -250,7 +246,7 @@ object SupabaseCashbook {
             // Log for debugging
             Log.d(TAG, "getBillsByType($type): Found ${result.size} bills")
             result.firstOrNull()?.let {
-                Log.d(TAG, "First bill amount: ${it.entry?.amountString} -> parsed: ${it.entry?.amount}")
+                Log.d(TAG, "First bill amount: ${it.entry?.amount}")
             }
 
             result
